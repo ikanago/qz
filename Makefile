@@ -1,10 +1,16 @@
+# Commands
 CC := gcc
 CXX := g++
 FORMAT := clang-format
 PYTHON := python
 
+# Command options
 FORMAT_OPT := -style=file -i
+CFLAGS += -Wall -I$(INCLUDE)
+CPPFLAGS += -I$(GTEST_OUTPUT_DIR) -I$(INCLUDE) -DGTEST_HAS_PTHREAD=0
+CXXFLAGS += -Wall
 
+# Directories
 SRC_DIR := src
 TEST_DIR := test
 INCLUDE := include
@@ -14,6 +20,7 @@ BIN_DIR := bin
 GTEST_OUTPUT_DIR := gtest_output
 GTEST_ROOT_DIR := thirdparty/googletest
 
+# Files
 SRC = $(wildcard $(SRC_DIR)/*.c)
 HEADERS = $(wildcard $(INCLUDE)/*.h)
 OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
@@ -21,12 +28,7 @@ TEST_SRC = $(wildcard $(TEST_DIR)/*.cpp)
 TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/, $(notdir $(TEST_SRC:.cpp=.o)))
 GTEST_ALL_OBJ = $(OBJ_DIR)/gtest-all.o
 GTEST_MAIN_OBJ = $(OBJ_DIR)/gtest_main.o
-
-CFLAGS += -Wall -I$(INCLUDE)
-CPPFLAGS += -I$(GTEST_OUTPUT_DIR) -I$(INCLUDE) -DGTEST_HAS_PTHREAD=0
-CXXFLAGS += -Wall
-
-TARGET = $(BIN_DIR)/qz
+TARGET = qz
 
 .PHONY: all
 all: $(TARGET)
@@ -35,8 +37,8 @@ all: $(TARGET)
 run: $(TARGET)
 	@./$(TARGET)
 
-.PHONY: format
-format:
+.PHONY: fmt
+fmt:
 	@$(FORMAT) $(FORMAT_OPT) $(SRC) $(HEADERS)
 
 .PHONY: clean
@@ -49,7 +51,6 @@ test: $(BIN_DIR)/test_main
 	./$(BIN_DIR)/test_main
 
 $(TARGET): $(OBJ)
-	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)

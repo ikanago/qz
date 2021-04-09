@@ -1,14 +1,17 @@
+#include "tcp.h"
+
 #include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <strings.h>
 #include <sys/socket.h>
-#include <tcp.h>
 #include <unistd.h>
 
 int tcp_listen(const int port) {
     const int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
-        return -1;
+        perror("Socket: ");
+        exit(1);
     }
 
     struct sockaddr_in addr;
@@ -21,13 +24,16 @@ int tcp_listen(const int port) {
 
     const int bind_res = bind(sock, (struct sockaddr *)&addr, sizeof(addr));
     if (bind_res < 0) {
-        return -1;
+        close(sock);
+        perror("Bind: ");
+        exit(1);
     }
 
     const int listen_res = listen(sock, 5);
     if (listen_res < 0) {
         close(sock);
-        return -1;
+        perror("Listen: ");
+        exit(1);
     }
     return sock;
 }

@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <tcp.h>
 #include <unistd.h>
+
+#include "tcp.h"
 
 #define BUFSIZE 1024
 
@@ -14,16 +15,7 @@ int main(int argc, char** argv) {
     }
 
     const int sock_listen = tcp_listen(11111);
-    if (sock_listen < 0) {
-        perror("");
-        return -1;
-    }
-
     const int sock_accept = tcp_accept(sock_listen);
-    if (sock_accept < 0) {
-        perror("");
-        return -1;
-    }
 
     const int wfd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
     char buf[BUFSIZE];
