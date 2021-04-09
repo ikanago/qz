@@ -22,8 +22,9 @@ TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/, $(notdir $(TEST_SRC:.cpp=.o)))
 GTEST_ALL_OBJ = $(OBJ_DIR)/gtest-all.o
 GTEST_MAIN_OBJ = $(OBJ_DIR)/gtest_main.o
 
-CFLAGS += -I$(INCLUDE)
+CFLAGS += -Wall -I$(INCLUDE)
 CPPFLAGS += -I$(GTEST_OUTPUT_DIR) -I$(INCLUDE) -DGTEST_HAS_PTHREAD=0
+CXXFLAGS += -Wall
 
 TARGET = $(BIN_DIR)/qz
 
