@@ -1,6 +1,7 @@
 #include "tcp.h"
 
 #include <netinet/in.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -42,4 +43,23 @@ int tcp_accept(const int sock_listen) {
     struct sockaddr addr;
     const size_t len = sizeof(struct sockaddr);
     return accept(sock_listen, &addr, (socklen_t *)&len);
+}
+
+int tcp_connect(const char* hostname, const int port) {
+    const int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    const struct hostent* host = gethostbyname(hostname);
+
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_addr = *(struct in_addr *)(host->h_addr_list[0]);
+    addr.sin_port = htons(port);
+
+    int ret;
+    if ((ret = connect(sock, (struct sockaddr*)&addr, sizeof(addr))) < 0) {
+        close(sock);
+        perror("Connect: ");
+        exit(1);
+    } else {
+        return sock;
+    }
 }

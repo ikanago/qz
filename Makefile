@@ -31,14 +31,15 @@ TEST_SRC = $(wildcard $(TEST_DIR)/*.cpp)
 TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/, $(notdir $(TEST_SRC:.cpp=.o)))
 GTEST_ALL_OBJ = $(OBJ_DIR)/gtest-all.o
 GTEST_MAIN_OBJ = $(OBJ_DIR)/gtest_main.o
-TARGET = qz
+BIN_QZ = $(BIN_DIR)/qz
+BIN_CLIENT = $(BIN_DIR)/client
 
 .PHONY: all
-all: $(TARGET)
+all: $(BIN_QZ) $(BIN_CLIENT)
 
 .PHONY: run
-run: $(TARGET)
-	@./$(TARGET)
+run: $(BIN_QZ)
+	@./$(BIN_QZ)
 
 .PHONY: fmt
 fmt:
@@ -53,8 +54,13 @@ test: $(BIN_DIR)/test_main
 	@mkdir -p $(BIN_DIR)
 	./$(BIN_DIR)/test_main
 
-$(TARGET): $(SRC_OBJ) $(LIB_OBJ)
-	$(CC) $(CFLAGS) -o $@ $^
+$(BIN_QZ): $(SRC_OBJ) $(LIB_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -o $@ $(filter-out $(OBJ_DIR)/client.o, $^)
+
+$(BIN_CLIENT): $(SRC_OBJ) $(LIB_OBJ)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -o $@ $(filter-out $(OBJ_DIR)/qz.o, $^)
 
 $(SRC_OBJ): $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
 	@mkdir -p $(dir $@)

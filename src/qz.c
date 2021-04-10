@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <stdio.h>
+#include <strings.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -19,10 +20,12 @@ int main(int argc, char** argv) {
 
     const int wfd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
     char buf[BUFSIZE];
+    bzero(&buf, BUFSIZE);
     int received_bytes;
     while ((received_bytes = recv(sock_accept, buf, BUFSIZE, 0)) > 0) {
         write(wfd, buf, received_bytes);
     }
+    puts("Received bytes\n");
 
     close(sock_listen);
     close(sock_accept);
