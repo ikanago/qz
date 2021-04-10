@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <unistd.h>
 
 int tcp_listen(const int port) {
@@ -54,8 +55,8 @@ int tcp_connect(const char* hostname, const int port) {
     addr.sin_addr = *(struct in_addr *)(host->h_addr_list[0]);
     addr.sin_port = htons(port);
 
-    int ret;
-    if ((ret = connect(sock, (struct sockaddr*)&addr, sizeof(addr))) < 0) {
+    int is_connect = connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+    if (is_connect < 0) {
         close(sock);
         perror("Connect: ");
         exit(1);
@@ -63,3 +64,27 @@ int tcp_connect(const char* hostname, const int port) {
         return sock;
     }
 }
+
+int tcp_talk(const int sock, char* buf, const size_t buf_len) {
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(0, &fds);
+    FD_SET(sock, &fds);
+    select(sock + 1, &fds, NULL, NULL, NULL);
+
+    if (FD_ISSET(0, &fds) != 0) {
+        const int read_bytes = read(0, buf, buf_len);
+        write(sock, buf, read_bytes);
+    }
+
+    if (FD_ISSET(sock, &fds) != 0) {
+        const int received_bytes = recv(sock, buf, buf_len, 0);
+        if (received_bytes > 0) {
+            write(1, buf, received_bytes);
+        } else {
+            return -1;
+        }
+    }
+    return 1;
+}
+

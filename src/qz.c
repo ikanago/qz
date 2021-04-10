@@ -11,24 +11,21 @@
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        printf("Usage: %s [output filename]\n", argv[0]);
-        return -1;
+        printf("Usage: %s [port]\n", argv[0]);
+        return 1;
     }
 
-    const int sock_listen = tcp_listen(11111);
-    const int sock_accept = tcp_accept(sock_listen);
-
-    const int wfd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+    const int port = atoi(argv[1]);
+    const int sock_listen = tcp_listen(port);
     char buf[BUFSIZE];
-    bzero(&buf, BUFSIZE);
-    int received_bytes;
-    while ((received_bytes = recv(sock_accept, buf, BUFSIZE, 0)) > 0) {
-        write(wfd, buf, received_bytes);
+    while (1) {
+        const int sock_accept = tcp_accept(sock_listen);
+        int ret = 1;
+        while ((ret = tcp_talk(sock_accept, buf, BUFSIZE)) == 1) {
+        }
+        close(sock_accept);
     }
-    puts("Received bytes\n");
 
     close(sock_listen);
-    close(sock_accept);
-    close(wfd);
     return 0;
 }

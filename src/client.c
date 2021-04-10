@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <strings.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -10,21 +11,18 @@
 
 int main(int argc, char** argv) {
     if (argc != 3) {
-        printf("Usage: %s [ip address] [input filename]\n", argv[0]);
+        printf("Usage: %s [ip address] [port]\n", argv[0]);
         return 1;
     }
 
-    const int sock = tcp_connect(argv[1], 11111);
-    const int rfd = open(argv[2], O_RDONLY);
+    const int port = atoi(argv[2]);
+    const int sock = tcp_connect(argv[1], port);
     char buf[BUFSIZE];
-    bzero(&buf, BUFSIZE);
-    int read_byte;
-    while ((read_byte = read(rfd, buf, BUFSIZE)) > 0) {
-        send(sock, buf, BUFSIZE, 0);
-    }
-    puts("Sent bytes");
+    int ret = 1;
+    while ((ret = tcp_talk(sock, buf, BUFSIZE)) == 1) {
 
-    close(rfd);
+    }
+
     close(sock);
     return 0;
 }
