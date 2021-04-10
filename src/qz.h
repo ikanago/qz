@@ -1,0 +1,3 @@
+#define BUFSIZE 1024
+#define NUM_CLIENTS 10
+

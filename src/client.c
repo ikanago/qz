@@ -5,9 +5,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "qz.h"
 #include "tcp.h"
-
-#define BUFSIZE 1024
 
 int main(int argc, char** argv) {
     if (argc != 3) {
@@ -20,7 +19,6 @@ int main(int argc, char** argv) {
     char buf[BUFSIZE];
     int ret = 1;
     while ((ret = tcp_talk(sock, buf, BUFSIZE)) == 1) {
-
     }
 
     close(sock);

@@ -43,7 +43,7 @@ run: $(BIN_QZ)
 
 .PHONY: fmt
 fmt:
-	@$(FORMAT) $(FORMAT_OPT) $(SRC) $(HEADERS)
+	@$(FORMAT) $(FORMAT_OPT) $(SRC) $(LIB) $(HEADERS)
 
 .PHONY: clean
 clean:
@@ -62,16 +62,13 @@ $(BIN_CLIENT): $(SRC_OBJ) $(LIB_OBJ)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o $@ $(filter-out $(OBJ_DIR)/qz.o, $^)
 
-$(SRC_OBJ): $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+$(SRC_OBJ): $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_HEADERS) $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(LIB_OBJ): $(OBJ_DIR)/%.o: $(LIB_DIR)/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(GTEST_OUTPUT_DIR)/gtest:
-	$(PYTHON) $(GTEST_ROOT_DIR)/googletest/scripts/fuse_gtest_files.py $(GTEST_OUTPUT_DIR)
 
 $(BIN_DIR)/test_main: $(GTEST_ALL_OBJ) $(GTEST_MAIN_OBJ) $(TEST_OBJ) $(LIB_OBJ)
 	@mkdir -p $(dir $@)
@@ -84,6 +81,9 @@ $(GTEST_ALL_OBJ): $(GTEST_OUTPUT_DIR)/gtest
 $(GTEST_MAIN_OBJ): $(GTEST_OUTPUT_DIR)/gtest
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $(OBJ_DIR)/gtest_main.o $(GTEST_ROOT_DIR)/googletest/src/gtest_main.cc
+
+$(GTEST_OUTPUT_DIR)/gtest:
+	$(PYTHON) $(GTEST_ROOT_DIR)/googletest/scripts/fuse_gtest_files.py $(GTEST_OUTPUT_DIR)
 
 $(TEST_OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp $(HEADERS) $(GTEST_OUTPUT_DIR)/gtest
 	@mkdir -p $(dir $@)
