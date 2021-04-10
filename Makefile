@@ -6,14 +6,15 @@ PYTHON := python
 
 # Command options
 FORMAT_OPT := -style=file -i
-CFLAGS += -Wall -I$(INCLUDE)
-CPPFLAGS += -I$(GTEST_OUTPUT_DIR) -I$(INCLUDE) -DGTEST_HAS_PTHREAD=0
+CFLAGS += -Wall -I$(INC_DIR)
+CPPFLAGS += -I$(GTEST_OUTPUT_DIR) -I$(INC_DIR) -DGTEST_HAS_PTHREAD=0
 CXXFLAGS += -Wall
 
 # Directories
 SRC_DIR := src
+LIB_DIR := lib
 TEST_DIR := test
-INCLUDE := include
+INC_DIR := include
 OBJ_DIR := obj
 TEST_OBJ_DIR := obj/test
 BIN_DIR := bin
@@ -22,8 +23,10 @@ GTEST_ROOT_DIR := thirdparty/googletest
 
 # Files
 SRC = $(wildcard $(SRC_DIR)/*.c)
-HEADERS = $(wildcard $(INCLUDE)/*.h)
-OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
+LIB = $(wildcard $(LIB_DIR)/*.c)
+HEADERS = $(wildcard $(INC_DIR)/*.h)
+SRC_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
+LIB_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(LIB:.c=.o)))
 TEST_SRC = $(wildcard $(TEST_DIR)/*.cpp)
 TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/, $(notdir $(TEST_SRC:.cpp=.o)))
 GTEST_ALL_OBJ = $(OBJ_DIR)/gtest-all.o
@@ -50,19 +53,23 @@ test: $(BIN_DIR)/test_main
 	@mkdir -p $(BIN_DIR)
 	./$(BIN_DIR)/test_main
 
-$(TARGET): $(OBJ)
+$(TARGET): $(SRC_OBJ) $(LIB_OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+$(SRC_OBJ): $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(LIB_OBJ): $(OBJ_DIR)/%.o: $(LIB_DIR)/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(GTEST_OUTPUT_DIR)/gtest:
 	$(PYTHON) $(GTEST_ROOT_DIR)/googletest/scripts/fuse_gtest_files.py $(GTEST_OUTPUT_DIR)
 
-$(BIN_DIR)/test_main: $(GTEST_ALL_OBJ) $(GTEST_MAIN_OBJ) $(TEST_OBJ) $(OBJ)
+$(BIN_DIR)/test_main: $(GTEST_ALL_OBJ) $(GTEST_MAIN_OBJ) $(TEST_OBJ) $(LIB_OBJ)
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(filter-out $(OBJ_DIR)/main.o, $^)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $^
 
 $(GTEST_ALL_OBJ): $(GTEST_OUTPUT_DIR)/gtest
 	@mkdir -p $(dir $@)
