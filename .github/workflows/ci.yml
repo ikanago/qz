@@ -22,7 +22,7 @@ jobs:
       run: make fmt
     - name: Check Format
       run: |
-        diff=$(git diff)
-        echo $diff
-        test $(echo -n $diff | wc -l) -eq 0
+        dif=$(git diff)
+        echo $dif
+        test $(echo -n $dif | wc -l) -eq 0
 

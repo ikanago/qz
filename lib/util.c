@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-size_t read_until(const char* buf, const char* buf_end,  char target) {
+size_t read_until(const char* buf, const char* buf_end, char target) {
     size_t pos = 0;
     while (buf + pos < buf_end) {
         if (buf[pos] == target) {
@@ -19,4 +19,3 @@ size_t consume_until(const char* buf, const char* buf_end, char* output, char ta
     output[len] = 0;
     return len;
 }
-

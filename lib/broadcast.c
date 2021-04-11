@@ -11,8 +11,7 @@ void init_clients(int* clients, const size_t num_clients) {
     }
 }
 
-void set_fds(fd_set* pfds, const int sock, int* clients,
-             const size_t num_clients) {
+void set_fds(fd_set* pfds, const int sock, int* clients, const size_t num_clients) {
     FD_ZERO(pfds);
     FD_SET(sock, pfds);
     for (size_t i = 0; i < num_clients; i++) {
@@ -43,8 +42,8 @@ int get_max_sock(int* clients, size_t num_clients) {
     return max_sock;
 }
 
-void broadcast(char* buf, const size_t buf_len, const int socket_from,
-               int* clients, const size_t num_clients) {
+void broadcast(char* buf, const size_t buf_len, const int socket_from, int* clients,
+               const size_t num_clients) {
     for (int i = 0; i < num_clients; i++) {
         if (i == socket_from) {
             continue;

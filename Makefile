@@ -79,11 +79,11 @@ $(BIN_DIR)/test_main: $(GMOCK_GTEST_ALL_OBJ) $(GTEST_MAIN_OBJ) $(TEST_OBJ) $(LIB
 # 	@mkdir -p $(dir $@)
 # 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $(OBJ_DIR)/gtest-all.o $(GTEST_OUTPUT_DIR)/gtest/gtest-all.cc
 
-$(GMOCK_GTEST_ALL_OBJ): $(GTEST_OUTPUT_DIR)/gtest $(GTEST_OUTPUT_DIR)/gmock
+$(GMOCK_GTEST_ALL_OBJ): $(GTEST_OUTPUT_DIR)/gmock
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $(OBJ_DIR)/gmock-gtest-all.o $(GTEST_OUTPUT_DIR)/gmock-gtest-all.cc
 
-$(GTEST_MAIN_OBJ): $(GTEST_OUTPUT_DIR)/gtest $(GTEST_OUTPUT_DIR)/gmock
+$(GTEST_MAIN_OBJ): $(GTEST_OUTPUT_DIR)/gmock
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $(OBJ_DIR)/gtest_main.o $(GTEST_ROOT_DIR)/googletest/src/gtest_main.cc
 
