@@ -1,4 +1,5 @@
-#pragma once
+#ifndef BROADCAST_H_
+#define BROADCAST_H_
 
 #include <stdlib.h>
 #include <sys/select.h>
@@ -15,3 +16,5 @@ int get_max_sock(int* clients, const size_t num_clients);
 
 void broadcast(char* buf, const size_t buf_len, const int socket_from, int* clients,
                const size_t num_clients);
+
+#endif

@@ -1,6 +1,9 @@
-#pragma once
+#ifndef PARSE_H_
+#define PARSE_H_
 
-#include <stdlib.h>
+#include <stddef.h>
+
+#include "error.h"
 
 typedef struct {
     char method[64];
@@ -11,4 +14,24 @@ typedef struct {
     int size;
 } Info;
 
-int parse_status_line(char* line, size_t size, Info* info);
+/**
+ * Parse `line` as an HTTP request and extract information about request header.
+ */
+Result parse_status_line(const char* line, const size_t size, Info* info);
+
+/**
+ * Check if `method` represents valid HTTP method.
+ */
+Result validate_method(const char* method, const size_t method_len);
+
+/**
+ * Check if `uri` represents valid URI.
+ */
+Result validate_uri(const char* uri, const size_t uri_len);
+
+/**
+ * Check if `version` represents valid URI.
+ */
+Result validate_version(const char* version, const size_t version_len);
+
+#endif
