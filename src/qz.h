@@ -1,3 +1,5 @@
-#define BUFSIZE 1024
-#define NUM_CLIENTS 10
+#ifndef QZ_H_
+#define QZ_H_
+
+#endif
 

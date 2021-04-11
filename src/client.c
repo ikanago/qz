@@ -5,8 +5,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "qz.h"
 #include "tcp.h"
+
+#define BUFSIZE 1024
 
 int main(int argc, char** argv) {
     if (argc != 3) {
