@@ -1,4 +1,4 @@
-#include "parse.h"
+#include "parse_request.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -8,17 +8,17 @@
 #include "method.h"
 #include "util.h"
 
-Result parse_status_line(const char* line, const size_t size, Info* info) {
+Result parse_status_line(const char* line, const size_t size, Request* req) {
     size_t pos = 0;
-    const size_t method_len = consume_until(line + pos, line + size, info->method, ' ');
-    const Result is_valid_method = validate_method(info->method, method_len);
+    const size_t method_len = consume_until(line + pos, line + size, req->method, ' ');
+    const Result is_valid_method = validate_method(req->method, method_len);
     if (is_err(is_valid_method)) {
         return is_valid_method;
     }
     pos += method_len + 1;
 
-    const size_t uri_len = consume_until(line + pos, line + size, info->uri, ' ');
-    const Result is_valid_uri = validate_uri(info->uri, uri_len);
+    const size_t uri_len = consume_until(line + pos, line + size, req->uri, ' ');
+    const Result is_valid_uri = validate_uri(req->uri, uri_len);
     if (is_err(is_valid_uri)) {
         return is_valid_uri;
     }

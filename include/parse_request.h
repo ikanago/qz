@@ -1,5 +1,5 @@
-#ifndef PARSE_H_
-#define PARSE_H_
+#ifndef PARSE_REQUEST_H_
+#define PARSE_REQUEST_H_
 
 #include <stddef.h>
 
@@ -12,12 +12,12 @@ typedef struct {
     char type[64];
     int code;
     int size;
-} Info;
+} Request;
 
 /**
  * Parse `line` as an HTTP request and extract information about request header.
  */
-Result parse_status_line(const char* line, const size_t size, Info* info);
+Result parse_status_line(const char* line, const size_t size, Request* info);
 
 /**
  * Check if `method` represents valid HTTP method.

@@ -7,16 +7,16 @@
 
 extern "C" {
 #include "error.h"
-#include "parse.h"
+#include "parse_request.h"
 }
 
 TEST(ParseRequest, ValidRequestLine) {
     char line[] = "GET /index.html HTTP/1.1";
-    Info info;
-    const Result r = parse_status_line(line, strlen(line), &info);
+    Request req;
+    const Result r = parse_status_line(line, strlen(line), &req);
     ASSERT_TRUE(is_ok(r));
-    ASSERT_THAT("GET", testing::ElementsAreArray(info.method, 4));
-    ASSERT_THAT("/index.html", testing::ElementsAreArray(info.uri, 12));
+    ASSERT_THAT("GET", testing::ElementsAreArray(req.method, 4));
+    ASSERT_THAT("/index.html", testing::ElementsAreArray(req.uri, 12));
 }
 
 TEST(ValidateMethod, ValidMethod) {
