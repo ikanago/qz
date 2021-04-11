@@ -6,6 +6,7 @@
 
 #include "error.h"
 #include "method.h"
+#include "request.h"
 #include "util.h"
 
 Result parse_status_line(const char* line, const size_t size, Request* req) {

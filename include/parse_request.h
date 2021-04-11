@@ -4,15 +4,7 @@
 #include <stddef.h>
 
 #include "error.h"
-
-typedef struct {
-    char method[64];
-    char uri[256];
-    char real_path[256];
-    char type[64];
-    int code;
-    int size;
-} Request;
+#include "request.h"
 
 /**
  * Parse `line` as an HTTP request and extract information about request header.
