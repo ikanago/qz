@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include <string.h>
+
+#include "gmock/gmock.h"
 
 extern "C" {
 #include "util.h"
@@ -41,4 +41,3 @@ TEST(Util, ConsumeUntilEOF) {
     ASSERT_EQ(5ul, len);
     ASSERT_THAT("abcde", testing::ElementsAreArray(output, len + 1));
 }
-

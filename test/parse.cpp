@@ -1,7 +1,9 @@
-#include "gmock/gmock.h"
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+
 #include <iostream>
+
+#include "gmock/gmock.h"
 
 extern "C" {
 #include "parse.h"
@@ -14,4 +16,3 @@ TEST(ParseRequest, ValidRequestLine) {
     ASSERT_THAT("GET", testing::ElementsAreArray(info.method, 4));
     ASSERT_THAT("/index.html", testing::ElementsAreArray(info.uri, 12));
 }
-

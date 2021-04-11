@@ -44,7 +44,7 @@ run: $(BIN_QZ)
 
 .PHONY: fmt
 fmt:
-	@$(FORMAT) $(FORMAT_OPT) $(SRC) $(LIB) $(HEADERS)
+	@$(FORMAT) $(FORMAT_OPT) $(SRC) $(LIB) $(HEADERS) $(TEST_SRC)
 
 .PHONY: clean
 clean:
