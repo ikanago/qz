@@ -9,10 +9,12 @@
 
 #include "broadcast.h"
 #include "tcp.h"
+#include "util.h"
 
 extern void serve_broadcast(const int sock_listen, int* clients);
 
 int main(int argc, char** argv) {
+    /*
     if (argc != 2) {
         printf("Usage: %s [port]\n", argv[0]);
         return 1;
@@ -27,5 +29,11 @@ int main(int argc, char** argv) {
     }
 
     close(sock_listen);
+    */
+    char line[] = "hoge fuga";
+    char* buf = &line[0];
+    char output[8];
+    consume_until(buf, buf + 9, output, ' ');
+    printf("%c\n", *buf);
     return 0;
 }

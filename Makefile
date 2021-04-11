@@ -29,7 +29,8 @@ SRC_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
 LIB_OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(LIB:.c=.o)))
 TEST_SRC = $(wildcard $(TEST_DIR)/*.cpp)
 TEST_OBJ = $(addprefix $(TEST_OBJ_DIR)/, $(notdir $(TEST_SRC:.cpp=.o)))
-GTEST_ALL_OBJ = $(OBJ_DIR)/gtest-all.o
+# GTEST_ALL_OBJ = $(OBJ_DIR)/gtest-all.o
+GMOCK_GTEST_ALL_OBJ = $(OBJ_DIR)/gmock-gtest-all.o
 GTEST_MAIN_OBJ = $(OBJ_DIR)/gtest_main.o
 BIN_QZ = $(BIN_DIR)/qz
 BIN_CLIENT = $(BIN_DIR)/client
@@ -70,20 +71,27 @@ $(LIB_OBJ): $(OBJ_DIR)/%.o: $(LIB_DIR)/%.c $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(BIN_DIR)/test_main: $(GTEST_ALL_OBJ) $(GTEST_MAIN_OBJ) $(TEST_OBJ) $(LIB_OBJ)
+$(BIN_DIR)/test_main: $(GMOCK_GTEST_ALL_OBJ) $(GTEST_MAIN_OBJ) $(TEST_OBJ) $(LIB_OBJ)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $^
 
-$(GTEST_ALL_OBJ): $(GTEST_OUTPUT_DIR)/gtest
-	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $(OBJ_DIR)/gtest-all.o $(GTEST_OUTPUT_DIR)/gtest/gtest-all.cc
+# $(GTEST_ALL_OBJ): $(GTEST_OUTPUT_DIR)/gtest $(GTEST_OUTPUT_DIR)/gmock
+# 	@mkdir -p $(dir $@)
+# 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $(OBJ_DIR)/gtest-all.o $(GTEST_OUTPUT_DIR)/gtest/gtest-all.cc
 
-$(GTEST_MAIN_OBJ): $(GTEST_OUTPUT_DIR)/gtest
+$(GMOCK_GTEST_ALL_OBJ): $(GTEST_OUTPUT_DIR)/gtest $(GTEST_OUTPUT_DIR)/gmock
+	@mkdir -p $(dir $@)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $(OBJ_DIR)/gmock-gtest-all.o $(GTEST_OUTPUT_DIR)/gmock-gtest-all.cc
+
+$(GTEST_MAIN_OBJ): $(GTEST_OUTPUT_DIR)/gtest $(GTEST_OUTPUT_DIR)/gmock
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $(OBJ_DIR)/gtest_main.o $(GTEST_ROOT_DIR)/googletest/src/gtest_main.cc
 
-$(GTEST_OUTPUT_DIR)/gtest:
-	$(PYTHON) $(GTEST_ROOT_DIR)/googletest/scripts/fuse_gtest_files.py $(GTEST_OUTPUT_DIR)
+# $(GTEST_OUTPUT_DIR)/gtest:
+# 	$(PYTHON) $(GTEST_ROOT_DIR)/googletest/scripts/fuse_gtest_files.py $(GTEST_OUTPUT_DIR)
+
+$(GTEST_OUTPUT_DIR)/gmock:
+	$(PYTHON) $(GTEST_ROOT_DIR)/googlemock/scripts/fuse_gmock_files.py $(GTEST_OUTPUT_DIR)
 
 $(TEST_OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp $(HEADERS) $(GTEST_OUTPUT_DIR)/gtest
 	@mkdir -p $(dir $@)
