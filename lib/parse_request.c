@@ -6,26 +6,26 @@
 
 #include "error.h"
 #include "method.h"
-#include "request.h"
 #include "util.h"
+#include "request.h"
 
 Result parse_status_line(const char* line, const size_t size, Request* req) {
     size_t pos = 0;
-    const size_t method_len = consume_until(line + pos, line + size, req->method, ' ');
+    const size_t method_len = consume_until(line + pos, req->method, ' ');
     const Result is_valid_method = validate_method(req->method, method_len);
     if (is_err(is_valid_method)) {
         return is_valid_method;
     }
     pos += method_len + 1;
 
-    const size_t uri_len = consume_until(line + pos, line + size, req->uri, ' ');
+    const size_t uri_len = consume_until(line + pos, req->uri, ' ');
     const Result is_valid_uri = validate_uri(req->uri, uri_len);
     if (is_err(is_valid_uri)) {
         return is_valid_uri;
     }
     pos += uri_len + 1;
 
-    const size_t version_len = read_until(line + pos, line + size, '\r');
+    const size_t version_len = read_until(line + pos, '\r');
     const Result is_valid_version = validate_version(line + pos, version_len);
     if (is_err(is_valid_version)) {
         return is_valid_version;

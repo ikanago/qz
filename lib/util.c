@@ -1,20 +1,18 @@
 #include "util.h"
 
 #include <string.h>
+#include <stddef.h>
 
-size_t read_until(const char* buf, const char* buf_end, char target) {
-    size_t pos = 0;
-    while (buf + pos < buf_end) {
-        if (buf[pos] == target) {
-            break;
-        }
-        pos++;
+size_t read_until(const char* buf, char target) {
+    const char* found = strchr(buf, (int)target);
+    if (found == NULL) {
+        return strlen(buf);
     }
-    return pos;
+    return found - buf;
 }
 
-size_t consume_until(const char* buf, const char* buf_end, char* output, char target) {
-    const size_t len = read_until(buf, buf_end, target);
+size_t consume_until(const char* buf, char* output, char target) {
+    const size_t len = read_until(buf, target);
     strncpy(output, buf, len);
     output[len] = 0;
     return len;
