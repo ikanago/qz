@@ -1,0 +1,28 @@
+name: Unit Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build Project
+      run: make
+    - name: Build and Run Test
+      run: make test
+      
+  format:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Format Project
+      run: make fmt
+    - name: Check Format
+      run: |
+        diff=$(git diff)
+        echo $diff
+        test $(echo -n $diff | wc -l) -eq 0
+
