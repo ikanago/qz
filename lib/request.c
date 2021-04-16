@@ -30,12 +30,17 @@ void check_file(Request* req, const char* dir_name) {
     snprintf(req->real_path, sizeof(req->real_path), "%s%s", dir_name, req->uri);
     struct stat s;
     const int ret = stat(req->real_path, &s);
+    if (S_ISDIR(s.st_mode)) {
+        sprintf(req->real_path, "%sindex.html", req->real_path);
+        sprintf(req->uri, "%sindex.html", req->uri);
+    }
     if (ret == -1) {
         req->code = 404;
     } else {
         req->code = 200;
         req->size = (int)s.st_size;
     }
+    printf("%s\n", req->real_path);
 
     const char* extension = strstr(req->real_path, ".");
     if (extension == NULL) {

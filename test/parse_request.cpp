@@ -19,6 +19,15 @@ TEST(ParseRequest, ValidRequestLine) {
     ASSERT_THAT("/index.html", testing::ElementsAreArray(req.uri, 12));
 }
 
+TEST(ParseRequest, ValidRequestLineToRoot) {
+    char line[] = "GET / HTTP/1.1";
+    Request req;
+    const Result r = parse_status_line(line, strlen(line), &req);
+    ASSERT_TRUE(is_ok(r));
+    ASSERT_THAT("GET", testing::ElementsAreArray(req.method, 4));
+    ASSERT_THAT("/", testing::ElementsAreArray(req.uri, 2));
+}
+
 TEST(ValidateMethod, ValidMethod) {
     char method[] = "GET";
     const Result r = validate_method(method, strlen(method));

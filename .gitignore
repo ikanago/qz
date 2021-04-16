@@ -57,5 +57,7 @@ bin
 gtest_output
 .vscode
 img
+html
 
+*.zip
 .ccls*
