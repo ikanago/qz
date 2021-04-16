@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
 
     const int port = atoi(argv[1]);
     const int sock_listen = tcp_listen(port);
+    printf("Listening on port %d\n", port);
     while (1) {
         const int sock_client = tcp_accept(sock_listen);
         http_session(sock_client);

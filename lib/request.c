@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -29,11 +30,12 @@ int http_session(const int sock) {
 void check_file(Request* req, const char* dir_name) {
     snprintf(req->real_path, sizeof(req->real_path), "%s%s", dir_name, req->uri);
     struct stat s;
-    const int ret = stat(req->real_path, &s);
+    int ret = stat(req->real_path, &s);
     if (S_ISDIR(s.st_mode)) {
         sprintf(req->real_path, "%sindex.html", req->real_path);
         sprintf(req->uri, "%sindex.html", req->uri);
     }
+    ret = stat(req->real_path, &s);
     if (ret == -1) {
         req->code = 404;
     } else {
@@ -49,7 +51,7 @@ void check_file(Request* req, const char* dir_name) {
     if (strncmp(extension, ".html", 5) == 0) {
         strncpy(req->type, "text/html", 10);
     } else if (strncmp(extension, ".jpg", 4) == 0) {
-        strncpy(req->type, "text/jpeg", 10);
+        strncpy(req->type, "image/jpeg", 11);
     }
 }
 
@@ -71,7 +73,7 @@ void reply_http(const int sock, Request* req) {
         close(sock);
         return;
     }
-    send_file(sock, req->real_path);
+    send_file(sock, req->real_path, req->size);
 }
 
 void send_404(const int sock) {
@@ -85,7 +87,7 @@ void send_404(const int sock) {
     }
 }
 
-void send_file(const int sock, const char* file_name) {
+void send_file(const int sock, const char* file_name, const size_t size) {
     const int fd = open(file_name, O_RDONLY);
     if (fd == -1) {
         shutdown(sock, SHUT_RDWR);
@@ -93,15 +95,18 @@ void send_file(const int sock, const char* file_name) {
         return;
     }
 
-    char buf[256];
-    int len = 0;
-    while ((len = read(fd, buf, 256)) > 0) {
-        const int ret = send(sock, buf, len, 0);
-        if (ret < 0) {
-            shutdown(sock, SHUT_RDWR);
-            close(sock);
-            break;
-        }
+    char* buf = calloc(size, sizeof(char));
+    if (buf == NULL) {
+        shutdown(sock, SHUT_RDWR);
+        close(sock);
     }
+    int len = read(fd, buf, size);
+    const int ret = send(sock, buf, len, 0);
+    if (ret < 0) {
+        shutdown(sock, SHUT_RDWR);
+        close(sock);
+        free(buf);
+    }
+    free(buf);
     close(fd);
 }
