@@ -62,10 +62,7 @@ void reply_http(const int sock, Request* req) {
     }
 
     char buf[256];
-    size_t len = snprintf(buf, sizeof(buf), "HTTP/1.1 200 OK\r\n");
-    len += snprintf(buf + len, sizeof(buf), "Content-Length: %d\r\n", req->size);
-    len += snprintf(buf + len, sizeof(buf), "Content-Type: %s\r\n", req->type);
-    len += snprintf(buf + len, sizeof(buf), "\r\n");
+    size_t len = snprintf(buf, sizeof(buf), "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n", req->size, req->type);
 
     const int res = send(sock, buf, len, 0);
     if (res < 0) {
