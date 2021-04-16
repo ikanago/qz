@@ -4,27 +4,18 @@ on:
   push:
   pull_request:
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-      with:
-        submodules: true
+    - name: Check format
+      run: cargo fmt -- --check
     - name: Build Project
-      run: make
+      run: cargo build --verbose
     - name: Build and Run Test
-      run: make test
-      
-  format:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Format Project
-      run: make fmt
-    - name: Check Format
-      run: |
-        dif=$(git diff)
-        echo $dif
-        test $(echo -n $dif | wc -l) -eq 0
+      run: cargo test --verbose
 
