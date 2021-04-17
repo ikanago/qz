@@ -1,27 +1,13 @@
-use crate::method::Method;
+use crate::{method::Method, request::{Uri, Version}};
 use std::convert::TryFrom;
 use std::str;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Version {
-    OneDotOne,
-}
-
-impl TryFrom<&[u8]> for Version {
-    type Error = ParseError;
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        match str::from_utf8(value) {
-            Ok("1.1") => Ok(Version::OneDotOne),
-            _ => Err(ParseError::InvalidVersion),
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseError {
     InvalidMethod,
     InvalidUri,
     InvalidVersion,
+    LackOfDelim,
 }
 
 #[derive(Debug)]
@@ -74,23 +60,39 @@ impl<'a> Parser<'a> {
         self.read_until(b' ')
     }
 
-    pub fn parse_method(&mut self) -> Result<Method, ParseError> {
+    /// Consume a first element and return error if it does not equal to `target`.
+    pub fn expect(&mut self, target: u8, error: ParseError) -> Result<(), ParseError> {
+        match self.consume() {
+            Some(b) if b == target => Ok(()),
+            _ => Err(error),
+        }
+    }
+
+    pub fn parse_request_line(&mut self) -> Result<(Method, Uri, Version), ParseError> {
+        let method = self.parse_method()?;
+        let uri = self.parse_uri()?;
+        let version = self.parse_version()?;
+        self.expect(b'\n', ParseError::LackOfDelim)?;
+        Ok((method, uri, version))
+    }
+
+    fn parse_method(&mut self) -> Result<Method, ParseError> {
         match self.read_until_whitespace() {
             Some(method) => Method::try_from(method),
             None => Err(ParseError::InvalidMethod),
         }
     }
 
-    pub fn parse_uri(&mut self) -> Result<&[u8], ParseError> {
+    fn parse_uri(&mut self) -> Result<Vec<u8>, ParseError> {
         let uri = self.read_until_whitespace().ok_or(ParseError::InvalidUri)?;
         if uri.starts_with(&[b'/']) {
-            Ok(uri)
+            Ok(uri.to_vec())
         } else {
             Err(ParseError::InvalidUri)
         }
     }
 
-    pub fn parse_version(&mut self) -> Result<Version, ParseError> {
+    fn parse_version(&mut self) -> Result<Version, ParseError> {
         let protocol = self.read_until(b'/').ok_or(ParseError::InvalidVersion)?;
         match str::from_utf8(protocol) {
             Ok("HTTP") => (),
@@ -135,6 +137,16 @@ mod tests {
     }
 
     #[test]
+    fn parse_request_line() {
+        let bytes = "GET /index.html HTTP/1.1\r\n".as_bytes();
+        let mut p = Parser::new(bytes);
+        let (method, uri, version) = p.parse_request_line().unwrap();
+        assert_eq!(Method::Get, method);
+        assert_eq!("/index.html".as_bytes().to_vec(), uri);
+        assert_eq!(Version::OneDotOne, version);
+    }
+
+    #[test]
     fn parse_method() {
         let bytes = "GET /index.html HTTP/1.1\r\n".as_bytes();
         let mut p = Parser::new(bytes);
@@ -145,7 +157,7 @@ mod tests {
     fn parse_uri() {
         let bytes = "/index.html HTTP/1.1\r\n".as_bytes();
         let mut p = Parser::new(bytes);
-        assert_eq!(Ok("/index.html".as_bytes()), p.parse_uri());
+        assert_eq!(Ok("/index.html".as_bytes().to_vec()), p.parse_uri());
     }
 
     #[test]
