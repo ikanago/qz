@@ -1,4 +1,3 @@
-mod parser;
 pub mod method;
+mod parser;
 pub mod request;
-

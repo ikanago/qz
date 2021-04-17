@@ -1,6 +1,9 @@
+use crate::{
+    method::Method,
+    parser::{ParseError, Parser},
+};
 use std::convert::TryFrom;
 use std::str;
-use crate::parser::ParseError;
 
 pub type Uri = Vec<u8>;
 
@@ -16,5 +19,24 @@ impl TryFrom<&[u8]> for Version {
             Ok("1.1") => Ok(Version::OneDotOne),
             _ => Err(ParseError::InvalidVersion),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Request {
+    method: Method,
+    uri: Uri,
+    version: Version,
+}
+
+impl Request {
+    pub fn new(request_bytes: &[u8]) -> Result<Self, ParseError> {
+        let mut p = Parser::new(request_bytes);
+        let (method, uri, version) = p.parse_request_line()?;
+        Ok(Self {
+            method,
+            uri,
+            version,
+        })
     }
 }

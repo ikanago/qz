@@ -1,4 +1,7 @@
-use crate::{method::Method, request::{Uri, Version}};
+use crate::{
+    method::Method,
+    request::{Uri, Version},
+};
 use std::convert::TryFrom;
 use std::str;
 
