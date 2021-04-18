@@ -33,11 +33,6 @@ impl<'a> Parser<'a> {
         })
     }
 
-    /// Read a first character in the state, but the state is not modified.
-    pub fn peek(&self) -> Option<u8> {
-        self.state.split_first().map(|(&b, _)| b)
-    }
-
     /// Read until `target` appears and return string composed of bytes read so far.
     /// It does not include `target`.
     pub fn read_until(&mut self, target: u8) -> Option<&[u8]> {
@@ -122,12 +117,6 @@ mod tests {
         assert_eq!(Some(b'*'), p.consume());
         assert_eq!(Some(b'+'), p.consume());
         assert_eq!(None, p.consume());
-    }
-
-    #[test]
-    fn peek_char() {
-        let p = Parser::new(&[42, 43]);
-        assert_eq!(Some(b'*'), p.peek());
     }
 
     #[test]
