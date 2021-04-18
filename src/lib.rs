@@ -2,10 +2,12 @@ pub mod header;
 pub mod method;
 mod parser;
 pub mod request;
+pub mod response;
 pub mod server;
+pub mod status;
 
 use crate::parser::ParseError;
-use std::{convert::TryFrom, fmt, str};
+use std::{convert::{From,TryFrom}, fmt, str};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Uri(Vec<u8>);
@@ -33,6 +35,14 @@ pub enum Version {
     OneDotOne,
 }
 
+impl Version {
+    fn as_str(&self) -> &'static str {
+        match &self {
+            OneDotOne => "1.1",
+        }
+    }
+}
+
 impl Default for Version {
     fn default() -> Self {
         Self::OneDotOne
@@ -50,8 +60,8 @@ impl fmt::Display for Version {
 impl TryFrom<&[u8]> for Version {
     type Error = ParseError;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        match str::from_utf8(value) {
-            Ok("1.1") => Ok(Version::OneDotOne),
+        match &value[..] {
+            b"1.1" => Ok(Version::OneDotOne),
             _ => Err(ParseError::InvalidVersion),
         }
     }

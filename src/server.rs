@@ -1,4 +1,4 @@
-use crate::request::{ParseState, RequestBuffer};
+use crate::{response::Response,request::{ParseState, RequestBuffer}};
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -45,6 +45,7 @@ impl Server {
         let request = request_buf.complete();
 
         println!("{}", request);
-        return Ok("HTTP/1.1 200 OK\r\n\r\n".to_string());
+        let response = Response::default();
+        return Ok(response.into_bytes());
     }
 }
