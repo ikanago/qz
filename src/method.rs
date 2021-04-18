@@ -7,6 +7,12 @@ pub enum Method {
     Get,
 }
 
+impl Default for Method {
+    fn default() -> Self {
+        Self::Get
+    }
+}
+
 impl TryFrom<&[u8]> for Method {
     type Error = ParseError;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {

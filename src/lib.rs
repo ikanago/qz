@@ -1,4 +1,4 @@
 pub mod method;
-pub mod server;
 mod parser;
 pub mod request;
+pub mod server;

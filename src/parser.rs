@@ -86,10 +86,10 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_uri(&mut self) -> Result<Vec<u8>, ParseError> {
+    fn parse_uri(&mut self) -> Result<Uri, ParseError> {
         let uri = self.read_until_whitespace().ok_or(ParseError::InvalidUri)?;
         if uri.starts_with(&[b'/']) {
-            Ok(uri.to_vec())
+            Ok(Uri::new(uri))
         } else {
             Err(ParseError::InvalidUri)
         }
@@ -145,7 +145,7 @@ mod tests {
         let mut p = Parser::new(bytes);
         let (method, uri, version) = p.parse_request_line().unwrap();
         assert_eq!(Method::Get, method);
-        assert_eq!("/index.html".as_bytes().to_vec(), uri);
+        assert_eq!(Uri::new(b"/index.html"), uri);
         assert_eq!(Version::OneDotOne, version);
     }
 
@@ -160,7 +160,7 @@ mod tests {
     fn parse_uri() {
         let bytes = "/index.html HTTP/1.1\r\n".as_bytes();
         let mut p = Parser::new(bytes);
-        assert_eq!(Ok("/index.html".as_bytes().to_vec()), p.parse_uri());
+        assert_eq!(Ok(Uri::new(b"/index.html")), p.parse_uri());
     }
 
     #[test]
