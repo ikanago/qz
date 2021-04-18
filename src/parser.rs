@@ -1,7 +1,7 @@
 use crate::{
     header::{HeaderName, HeaderValue},
     method::Method,
-    request::{Uri, Version},
+    Uri, Version,
 };
 use std::convert::TryFrom;
 use std::str;

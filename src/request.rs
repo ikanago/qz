@@ -2,45 +2,9 @@ use crate::{
     header::{HeaderName, HeaderValue},
     method::Method,
     parser::{ParseError, Parser},
+    Uri, Version,
 };
-use std::convert::TryFrom;
-use std::{collections::HashMap, str};
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct Uri(Vec<u8>);
-
-impl Uri {
-    pub fn new(path: &[u8]) -> Self {
-        Self(path.to_vec())
-    }
-}
-
-impl Default for Uri {
-    fn default() -> Self {
-        Uri(b"/".to_vec())
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Version {
-    OneDotOne,
-}
-
-impl Default for Version {
-    fn default() -> Self {
-        Self::OneDotOne
-    }
-}
-
-impl TryFrom<&[u8]> for Version {
-    type Error = ParseError;
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        match str::from_utf8(value) {
-            Ok("1.1") => Ok(Version::OneDotOne),
-            _ => Err(ParseError::InvalidVersion),
-        }
-    }
-}
+use std::{collections::HashMap, fmt, str};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Request {
@@ -72,13 +36,15 @@ impl Request {
     }
 }
 
-/*
-impl PartialEq for Request {
-    fn eq(&self, other: &Self) -> bool {
-        self.headers.keys().
+impl fmt::Display for Request {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {}\n", self.method, self.uri, self.version)?;
+        for (name, value) in self.headers.iter() {
+            write!(f, "{}: {}\n", name, str::from_utf8(&value).unwrap())?;
+        }
+        Ok(())
     }
 }
-*/
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParseState {

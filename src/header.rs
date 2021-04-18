@@ -1,4 +1,4 @@
-use std::convert::From;
+use std::{convert::From, fmt};
 
 pub type HeaderValue = Vec<u8>;
 
@@ -8,6 +8,17 @@ pub enum HeaderName {
     Host,
     UserAgent,
     Unknown,
+}
+
+impl fmt::Display for HeaderName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            HeaderName::Accept => write!(f, "Accept"),
+            HeaderName::Host => write!(f, "Host"),
+            HeaderName::UserAgent => write!(f, "User-Agent"),
+            HeaderName::Unknown => write!(f, "Unknown"),
+        }
+    }
 }
 
 impl From<Vec<u8>> for HeaderName {
