@@ -1,4 +1,8 @@
-use crate::{header::Header, method::Method, request::{Uri, Version}};
+use crate::{
+    header::{HeaderName, HeaderValue},
+    method::Method,
+    request::{Uri, Version},
+};
 use std::convert::TryFrom;
 use std::str;
 
@@ -92,13 +96,19 @@ impl<'a> Parser<'a> {
         Version::try_from(version)
     }
 
-    pub fn parse_header(&mut self) -> Result<Header, ParseError> {
-        let header_name = self.read_until(b':').ok_or(ParseError::LackOfDelim)?.to_vec();
+    pub fn parse_header(&mut self) -> Result<(HeaderName, HeaderValue), ParseError> {
+        let header_name = self
+            .read_until(b':')
+            .ok_or(ParseError::LackOfDelim)?
+            .to_vec();
+        let header_name = HeaderName::from(header_name);
         self.expect(b' ', ParseError::LackOfDelim)?;
-        let header_value = self.read_until(b'\r').ok_or(ParseError::LackOfDelim)?.to_vec();
+        let header_value = self
+            .read_until(b'\r')
+            .ok_or(ParseError::LackOfDelim)?
+            .to_vec();
         self.expect(b'\n', ParseError::LackOfDelim)?;
-        let header = Header::from((header_name, header_value));
-        Ok(header)
+        Ok((header_name, header_value))
     }
 }
 
@@ -170,6 +180,6 @@ mod tests {
     fn parse_header() {
         let bytes = b"Accept: */*\r\n";
         let mut p = Parser::new(bytes);
-        assert_eq!(Ok(Header::Accept(b"*/*".to_vec())), p.parse_header());
+        assert_eq!(Ok((HeaderName::Accept, b"*/*".to_vec())), p.parse_header());
     }
 }
