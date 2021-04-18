@@ -1,7 +1,4 @@
-use crate::{
-    method::Method,
-    request::{Uri, Version},
-};
+use crate::{header::Header, method::Method, request::{Uri, Version}};
 use std::convert::TryFrom;
 use std::str;
 
@@ -94,6 +91,15 @@ impl<'a> Parser<'a> {
         let version = self.read_until(b'\r').ok_or(ParseError::InvalidVersion)?;
         Version::try_from(version)
     }
+
+    pub fn parse_header(&mut self) -> Result<Header, ParseError> {
+        let header_name = self.read_until(b':').ok_or(ParseError::LackOfDelim)?.to_vec();
+        self.expect(b' ', ParseError::LackOfDelim)?;
+        let header_value = self.read_until(b'\r').ok_or(ParseError::LackOfDelim)?.to_vec();
+        self.expect(b'\n', ParseError::LackOfDelim)?;
+        let header = Header::from((header_name, header_value));
+        Ok(header)
+    }
 }
 
 #[cfg(test)]
@@ -158,5 +164,12 @@ mod tests {
         let bytes = "HTTP/1.1\r\n".as_bytes();
         let mut p = Parser::new(bytes);
         assert_eq!(Ok(Version::OneDotOne), p.parse_version());
+    }
+
+    #[test]
+    fn parse_header() {
+        let bytes = b"Accept: */*\r\n";
+        let mut p = Parser::new(bytes);
+        assert_eq!(Ok(Header::Accept(b"*/*".to_vec())), p.parse_header());
     }
 }
