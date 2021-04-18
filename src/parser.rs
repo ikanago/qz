@@ -40,18 +40,8 @@ impl<'a> Parser<'a> {
     /// Read until `target` appears and return string composed of bytes read so far.
     /// It does not include `target`.
     pub fn read_until(&mut self, target: u8) -> Option<&[u8]> {
-        let mut pos = 0;
-        while pos < self.state.len() {
-            if self.state[pos] == target {
-                break;
-            }
-            pos += 1;
-        }
-
-        if pos == 0 {
-            return None;
-        }
-        let (found, tail) = self.state.split_at(pos);
+        let index = self.state.iter().position(|&b| b == target)?;
+        let (found, tail) = self.state.split_at(index);
         self.state = tail;
         // First element of tail is `target`, so skip it.
         self.consume();
