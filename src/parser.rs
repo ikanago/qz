@@ -1,6 +1,7 @@
 use crate::{
+    header::{HeaderName, HeaderValue},
     method::Method,
-    request::{Uri, Version},
+    Uri, Version,
 };
 use std::convert::TryFrom;
 use std::str;
@@ -32,26 +33,11 @@ impl<'a> Parser<'a> {
         })
     }
 
-    /// Read a first character in the state, but the state is not modified.
-    pub fn peek(&self) -> Option<u8> {
-        self.state.split_first().map(|(&b, _)| b)
-    }
-
     /// Read until `target` appears and return string composed of bytes read so far.
     /// It does not include `target`.
     pub fn read_until(&mut self, target: u8) -> Option<&[u8]> {
-        let mut pos = 0;
-        while pos < self.state.len() {
-            if self.state[pos] == target {
-                break;
-            }
-            pos += 1;
-        }
-
-        if pos == 0 {
-            return None;
-        }
-        let (found, tail) = self.state.split_at(pos);
+        let index = self.state.iter().position(|&b| b == target)?;
+        let (found, tail) = self.state.split_at(index);
         self.state = tail;
         // First element of tail is `target`, so skip it.
         self.consume();
@@ -104,6 +90,21 @@ impl<'a> Parser<'a> {
         let version = self.read_until(b'\r').ok_or(ParseError::InvalidVersion)?;
         Version::try_from(version)
     }
+
+    pub fn parse_header(&mut self) -> Result<(HeaderName, HeaderValue), ParseError> {
+        let header_name = self
+            .read_until(b':')
+            .ok_or(ParseError::LackOfDelim)?
+            .to_vec();
+        let header_name = HeaderName::from(header_name);
+        self.expect(b' ', ParseError::LackOfDelim)?;
+        let header_value = self
+            .read_until(b'\r')
+            .ok_or(ParseError::LackOfDelim)?
+            .to_vec();
+        self.expect(b'\n', ParseError::LackOfDelim)?;
+        Ok((header_name, header_value))
+    }
 }
 
 #[cfg(test)]
@@ -116,12 +117,6 @@ mod tests {
         assert_eq!(Some(b'*'), p.consume());
         assert_eq!(Some(b'+'), p.consume());
         assert_eq!(None, p.consume());
-    }
-
-    #[test]
-    fn peek_char() {
-        let p = Parser::new(&[42, 43]);
-        assert_eq!(Some(b'*'), p.peek());
     }
 
     #[test]
@@ -168,5 +163,12 @@ mod tests {
         let bytes = "HTTP/1.1\r\n".as_bytes();
         let mut p = Parser::new(bytes);
         assert_eq!(Ok(Version::OneDotOne), p.parse_version());
+    }
+
+    #[test]
+    fn parse_header() {
+        let bytes = b"Accept: */*\r\n";
+        let mut p = Parser::new(bytes);
+        assert_eq!(Ok((HeaderName::Accept, b"*/*".to_vec())), p.parse_header());
     }
 }

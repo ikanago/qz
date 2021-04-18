@@ -1,6 +1,5 @@
-use std::convert::TryFrom;
-
 use crate::parser::ParseError;
+use std::{convert::TryFrom, fmt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Method {
@@ -10,6 +9,14 @@ pub enum Method {
 impl Default for Method {
     fn default() -> Self {
         Self::Get
+    }
+}
+
+impl fmt::Display for Method {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Method::Get => write!(f, "GET"),
+        }
     }
 }
 
