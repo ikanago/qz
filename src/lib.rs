@@ -7,7 +7,7 @@ pub mod server;
 pub mod status;
 
 use crate::parser::ParseError;
-use std::{convert::{From,TryFrom}, fmt, str};
+use std::{convert::TryFrom, fmt, str};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Uri(Vec<u8>);
@@ -30,15 +30,15 @@ impl fmt::Display for Uri {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Version {
     OneDotOne,
 }
 
 impl Version {
-    fn as_str(&self) -> &'static str {
+    fn as_bytes(&self) -> &'static [u8; 3] {
         match &self {
-            OneDotOne => "1.1",
+            Version::OneDotOne => b"1.1",
         }
     }
 }
