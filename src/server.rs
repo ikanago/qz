@@ -1,4 +1,8 @@
-use crate::request::{ParseState, RequestBuffer};
+use crate::{
+    request::{ParseState, RequestBuffer},
+    response::Response,
+    status::StatusCode,
+};
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -19,14 +23,16 @@ impl Server {
             let (mut stream, _) = self.listener.accept().await?;
             tokio::spawn(async move {
                 if let Ok(response) = Self::process(&mut stream).await {
-                    stream.write_all(response.as_bytes()).await.unwrap_or(());
+                    if let Err(err) = response.send(&mut stream).await {
+                        eprintln!("{}", err);
+                    }
                     stream.shutdown().await.unwrap();
                 };
             });
         }
     }
 
-    pub async fn process(stream: &mut TcpStream) -> Result<String, ()> {
+    async fn process(stream: &mut TcpStream) -> Result<Response, ()> {
         let mut request_buf = RequestBuffer::new();
         let mut buf = vec![0; Self::INITIAL_BUFFER_SIZE];
         loop {
@@ -38,13 +44,13 @@ impl Server {
                     Err(_) => return Err(()),
                 },
                 Err(_) => {
-                    return Ok("HTTP/1.1 404 OK\r\n\r\n".to_string());
+                    return Ok(Response::from(StatusCode::NotFound));
                 }
             };
         }
-        let request = request_buf.complete();
 
+        let request = request_buf.complete();
         println!("{}", request);
-        return Ok("HTTP/1.1 200 OK\r\n\r\n".to_string());
+        return Ok(Response::default());
     }
 }
