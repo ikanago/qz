@@ -1,8 +1,10 @@
+pub mod handler;
 pub mod header;
 pub mod method;
 mod parser;
 pub mod request;
 pub mod response;
+mod router;
 pub mod server;
 pub mod status;
 
@@ -15,6 +17,12 @@ pub struct Uri(Vec<u8>);
 impl Uri {
     pub fn new(path: &[u8]) -> Self {
         Self(path.to_vec())
+    }
+}
+
+impl AsRef<[u8]> for Uri {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 

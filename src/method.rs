@@ -1,7 +1,7 @@
 use crate::parser::ParseError;
 use std::{convert::TryFrom, fmt};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Method {
     Get,
 }
