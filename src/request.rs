@@ -19,6 +19,10 @@ impl Request {
         Self::default()
     }
 
+    pub fn uri(&self) -> &Uri {
+        &self.uri
+    }
+
     fn parse_request_line(&mut self, bytes: &[u8]) -> Result<(), ParseError> {
         let mut p = Parser::new(bytes);
         let (method, uri, version) = p.parse_request_line()?;

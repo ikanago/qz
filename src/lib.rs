@@ -20,6 +20,12 @@ impl Uri {
     }
 }
 
+impl AsRef<[u8]> for Uri {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 impl Default for Uri {
     fn default() -> Self {
         Uri(b"/".to_vec())

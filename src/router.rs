@@ -2,7 +2,7 @@ use crate::handler::Handler;
 
 /// URI paths are represented as trie tree.
 /// This struct is a node of the tree.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Router {
     pub path: Vec<u8>,
     pub handler: Option<Box<dyn Handler>>,
@@ -58,7 +58,7 @@ impl Router {
 
         let lcp = self.longest_common_prefix(new_path);
         if self.path.len() > lcp {
-            // For example, `self.path` is "static" and longest common prefix is "stat".
+            // e.g. `self.path` is "static" and longest common prefix is "stat".
             let path = self.path.clone();
             let common_prefix = &path[..lcp];
             let path_remaining = &path[lcp..];
@@ -71,13 +71,13 @@ impl Router {
                 children: std::mem::take(&mut self.children),
             };
             if new_path_remaining.len() > 0 {
-                // For example, "abc" and "ade".
+                // e.g. "abc" and "ade".
                 self.children = vec![
                     Box::new(deriving_child),
                     Box::new(Router::new_child(new_path_remaining, handler)),
                 ];
             } else {
-                // For example, "abc" and "a".
+                // e.g. "abc" and "a".
                 // If "a" is inserted in the same way as previous `if` block, a handler for the node "a"
                 // is replaced with `None` but the node has a `handler`.
                 self.handler = Some(Box::new(handler));
@@ -85,7 +85,7 @@ impl Router {
             }
         } else {
             // When longest common prefix of `new_path` is exactly the same as `self.path`.
-            // For example, `self.path`: "static" and `new_path`: "static/index.html"
+            // e.g. `self.path`: "static" and `new_path`: "static/index.html"
             let new_path_remaining = &new_path[lcp..];
             for child in &mut self.children {
                 match (*child).path.iter().next() {
@@ -120,18 +120,23 @@ impl Router {
         if key.len() == 0 {
             return None;
         }
-        let lcp = self.longest_common_prefix(key);
-        let key_remaining = &key[lcp..];
-        if key_remaining.len() == 0 {
+        if &self.path[..] > key {
+            // e.g. `self.path` is "hoge" and `key` is "ho".
+            return None;
+        }
+        if self.path == key {
             return self.handler.as_ref();
         }
+
+        let lcp = self.longest_common_prefix(key);
+        let key_remaining = &key[lcp..];
 
         for child in &self.children {
             if &child.path == b"*" {
                 return self.handler.as_ref();
             }
             match (*child).path.iter().next() {
-                // Because more than 2 children node do not have same prefix,
+                // Because more than 2 children node do not have the same prefix,
                 // just check first character of key for each child.
                 Some(first_char) if first_char == key_remaining.iter().next().unwrap() => {
                     return child.find(key_remaining);
@@ -180,10 +185,7 @@ mod tests {
             tree.add_route(key.as_bytes(), dummy_handler);
         }
         for key in keys {
-            match tree.find(key.as_bytes()) {
-                Some(_) => continue,
-                None => panic!(),
-            }
+            tree.find(key.as_bytes()).unwrap();
         }
     }
 
@@ -208,11 +210,7 @@ mod tests {
             tree.add_route(key, dummy_handler);
         }
         for key in &keys {
-            match tree.find(key) {
-                Some(_) => continue,
-                None => panic!(),
-                // None => panic!("keys: {:?}\n, key: {}\n, tree: {:#?}", &keys, key, &tree),
-            }
+            tree.find(key).unwrap();
         }
     }
 
@@ -231,10 +229,14 @@ mod tests {
             "/static/index.js",
         ];
         for query in &queries {
-            match tree.find(query.as_bytes()) {
-                Some(_) => continue,
-                None => panic!(),
-            }
+            tree.find(query.as_bytes()).unwrap();
         }
+    }
+
+    #[test]
+    fn dont_match_substr() {
+        let mut tree = Router::new();
+        tree.add_route(b"/hoge", dummy_handler);
+        assert!(tree.find(b"/ho").is_none())
     }
 }
