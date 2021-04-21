@@ -9,6 +9,8 @@ use std::sync::Arc;
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
+/// Builder of `Server`.
+/// The reason of this struct is to make `Server.router` immutable.
 pub struct ServerBuilder {
     listener: TcpListener,
     router: Router,
@@ -22,7 +24,7 @@ impl ServerBuilder {
     }
 
     pub fn route<F: Handler>(mut self, path: &str, handler: F) -> Self {
-        self.router.add_route(path.as_bytes(), handler);
+        self.router.add_route(path, handler);
         self
     }
 
@@ -77,7 +79,7 @@ impl Server {
 
         let request = request_buf.complete();
         println!("{}", request);
-        let handler = match router.find(request.uri().as_ref()) {
+        let handler = match router.find(request.uri()) {
             Some(handler) => handler,
             None => return Ok(Response::from(StatusCode::NotFound)),
         };

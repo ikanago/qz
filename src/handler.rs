@@ -1,6 +1,7 @@
 use crate::{request::Request, response::Response};
 use std::fmt;
 
+/// Abstruction over all process to create response from request.
 pub trait Handler: Send + Sync + 'static {
     fn call(&self, request: Request) -> Response;
 }

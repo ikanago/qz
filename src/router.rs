@@ -1,5 +1,6 @@
 use crate::handler::Handler;
 
+/// Associates URI with `Handler`.
 /// URI paths are represented as trie tree.
 /// This struct is a node of the tree.
 #[derive(Debug, Default)]
@@ -44,7 +45,8 @@ impl Router {
         pos
     }
 
-    pub fn add_route<F: Handler>(&mut self, new_path: &[u8], handler: F) {
+    pub fn add_route<B: AsRef<[u8]>, F: Handler>(&mut self, new_path: B, handler: F) {
+        let new_path = new_path.as_ref();
         // For the first time to insert node to root.
         if self.path.len() == 0 && self.children.len() == 0 {
             self.children
@@ -116,7 +118,8 @@ impl Router {
         }));
     }
 
-    pub fn find(&self, key: &[u8]) -> Option<&Box<dyn Handler>> {
+    pub fn find<B: AsRef<[u8]>>(&self, key: B) -> Option<&Box<dyn Handler>> {
+        let key = key.as_ref();
         if key.len() == 0 {
             return None;
         }
@@ -154,7 +157,7 @@ mod tests {
     use crate::{request::Request, response::Response};
 
     #[test]
-    fn test_lcp() {
+    fn lcp() {
         let node_x = Router {
             path: b"abcde".to_vec(),
             handler: None,
@@ -164,7 +167,7 @@ mod tests {
     }
 
     #[test]
-    fn test_lcp_root() {
+    fn lcp_root() {
         let node_x = Router {
             path: b"".to_vec(),
             handler: None,
@@ -178,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn test_find() {
+    fn find() {
         let mut tree = Router::new();
         let keys = vec!["/", "to", "tea", "ted", "hoge", "h", "i", "in", "inn"];
         for key in &keys {
@@ -202,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn test_find_random() {
+    fn find_random() {
         let mut tree = Router::new();
         let count = 1000;
         let keys = (0..count).map(|_| random_bytes()).collect::<Vec<Vec<_>>>();
@@ -215,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn test_find_with_wildcard() {
+    fn find_with_wildcard() {
         let mut tree = Router::new();
         let paths = vec!["/", "/index.html", "/static/*"];
         for key in &paths {

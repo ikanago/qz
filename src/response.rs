@@ -3,6 +3,7 @@ use tokio::io::{self, AsyncWrite, AsyncWriteExt};
 use crate::{status::StatusCode, Version};
 use std::convert::From;
 
+/// Represents HTTP response.
 #[derive(Debug, Default)]
 pub struct Response {
     status_code: StatusCode,

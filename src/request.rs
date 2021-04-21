@@ -6,6 +6,7 @@ use crate::{
 };
 use std::{collections::HashMap, fmt, str};
 
+/// Represents HTTP request. This struct is built from `RequestBuffer` and passed to `Handler`.
 #[derive(Debug, Default, PartialEq)]
 pub struct Request {
     method: Method,
@@ -19,8 +20,20 @@ impl Request {
         Self::default()
     }
 
+    pub fn method(&self) -> &Method {
+        &self.method
+    }
+
     pub fn uri(&self) -> &Uri {
         &self.uri
+    }
+
+    pub fn version(&self) -> &Version {
+        &self.version
+    }
+
+    pub fn headers(&self) -> &HashMap<HeaderName, HeaderValue> {
+        &self.headers
     }
 
     fn parse_request_line(&mut self, bytes: &[u8]) -> Result<(), ParseError> {
@@ -87,7 +100,7 @@ impl RequestBuffer {
         self.request
     }
 
-    /// Extend buffer of this sturct with `data` and try to parse given request data.
+    /// Extend buffer of this struct with `data` and try to parse given request data.
     pub fn try_parse(&mut self, data: &[u8]) -> Result<ParseState, ParseError> {
         self.buffer.extend_from_slice(&data);
         let mut buf_iter = self.buffer.iter();
