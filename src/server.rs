@@ -1,7 +1,7 @@
 use crate::{
     handler::Handler,
     request::{ParseState, RequestBuffer},
-    response::Response,
+    response::{Responder, Response},
     router::Router,
     status::StatusCode,
 };
@@ -72,7 +72,7 @@ impl Server {
                     Err(_) => return Err(()),
                 },
                 Err(_) => {
-                    return Ok(Response::from(StatusCode::NotFound));
+                    return Ok(StatusCode::NotFound.respond_to());
                 }
             };
         }
@@ -81,9 +81,9 @@ impl Server {
         println!("{}", request);
         let handler = match router.find(request.uri()) {
             Some(handler) => handler,
-            None => return Ok(Response::from(StatusCode::NotFound)),
+            None => return Ok(StatusCode::NotFound.respond_to()),
         };
-        let response = handler.call(request);
+        let response = handler.call(request).await;
         return Ok(response);
     }
 }

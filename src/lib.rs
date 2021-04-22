@@ -1,3 +1,4 @@
+pub mod body;
 pub mod handler;
 pub mod header;
 pub mod method;
