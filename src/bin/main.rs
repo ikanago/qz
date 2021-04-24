@@ -1,9 +1,13 @@
 extern crate qz;
 
-use qz::{request::Request, response::Response, server::ServerBuilder, status::StatusCode};
+use qz::{request::Request, response::Responder, server::ServerBuilder, status::StatusCode};
 
-fn hello(_request: Request) -> Response {
-    Response::from(StatusCode::Ok)
+async fn hello(_request: Request) -> &'static str {
+    "hello"
+}
+
+async fn hoge(_request: Request) -> impl Responder {
+    StatusCode::Ok
 }
 
 #[tokio::main]
@@ -13,7 +17,8 @@ async fn main() {
         .await
         .unwrap()
         .route("/", hello)
-        .route("/hoge", |_req| Response::from(StatusCode::Ok))
+        .route("/hoge", hoge)
+        .route("/fuga", |_| async { "fuga" })
         .build();
     server.run().await.unwrap();
 }

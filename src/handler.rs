@@ -1,17 +1,25 @@
-use crate::{request::Request, response::Response};
-use std::fmt;
+use crate::{
+    request::Request,
+    response::{Responder, Response},
+};
+use async_trait::async_trait;
+use std::{fmt, future::Future};
 
 /// Abstruction over all process to create response from request.
+#[async_trait]
 pub trait Handler: Send + Sync + 'static {
-    fn call(&self, request: Request) -> Response;
+    async fn call(&self, request: Request) -> Response;
 }
 
-impl<F: Send + Sync + 'static> Handler for F
+#[async_trait]
+impl<F, Fut> Handler for F
 where
-    F: Fn(Request) -> Response,
+    F: Send + Sync + 'static + Fn(Request) -> Fut,
+    Fut: Future + Send + 'static,
+    Fut::Output: Responder,
 {
-    fn call(&self, request: Request) -> Response {
-        self(request)
+    async fn call(&self, request: Request) -> Response {
+        self(request).await.respond_to()
     }
 }
 

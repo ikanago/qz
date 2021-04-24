@@ -3,7 +3,7 @@ use crate::handler::Handler;
 /// Associates URI with `Handler`.
 /// URI paths are represented as trie tree.
 /// This struct is a node of the tree.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Router {
     pub path: Vec<u8>,
     pub handler: Option<Box<dyn Handler>>,
@@ -17,7 +17,11 @@ fn includes_wildcard(path: &[u8]) -> bool {
 
 impl Router {
     pub fn new() -> Self {
-        Default::default()
+        Self {
+            path: Vec::new(),
+            handler: None,
+            children: Vec::new(),
+        }
     }
 
     fn new_child<F: Handler>(path: &[u8], handler: F) -> Self {
@@ -154,7 +158,7 @@ impl Router {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{request::Request, response::Response};
+    use crate::{request::Request, response::Responder};
 
     #[test]
     fn lcp() {
@@ -176,7 +180,7 @@ mod tests {
         assert_eq!(node_x.longest_common_prefix(b"abchoge"), 0);
     }
 
-    fn dummy_handler(_request: Request) -> Response {
+    async fn dummy_handler(_request: Request) -> impl Responder {
         unimplemented!()
     }
 

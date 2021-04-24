@@ -5,19 +5,27 @@ pub type HeaderValue = Vec<u8>;
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum HeaderName {
     Accept,
+    ContentLength,
     Host,
     UserAgent,
     Unknown,
 }
 
+impl AsRef<[u8]> for HeaderName {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            HeaderName::Accept => b"Accept",
+            HeaderName::ContentLength => b"Content-Length",
+            HeaderName::Host => b"Host",
+            HeaderName::UserAgent => b"User-Agent",
+            HeaderName::Unknown => b"Unknown",
+        }
+    }
+}
+
 impl fmt::Display for HeaderName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            HeaderName::Accept => write!(f, "Accept"),
-            HeaderName::Host => write!(f, "Host"),
-            HeaderName::UserAgent => write!(f, "User-Agent"),
-            HeaderName::Unknown => write!(f, "Unknown"),
-        }
+        write!(f, "{}", std::str::from_utf8(self.as_ref()).unwrap())
     }
 }
 
@@ -28,6 +36,7 @@ impl From<Vec<u8>> for HeaderName {
         name.make_ascii_lowercase();
         match &name[..] {
             b"accept" => HeaderName::Accept,
+            b"content-length" => HeaderName::ContentLength,
             b"host" => HeaderName::Host,
             b"user-agent" => HeaderName::UserAgent,
             _ => HeaderName::Unknown,
