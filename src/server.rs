@@ -43,7 +43,7 @@ pub struct Server {
 }
 
 impl Server {
-    const INITIAL_BUFFER_SIZE: usize = 8;
+    const INITIAL_BUFFER_SIZE: usize = 1024;
 
     pub async fn run(&self) -> io::Result<()> {
         loop {
