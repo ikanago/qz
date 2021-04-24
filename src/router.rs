@@ -158,7 +158,7 @@ impl Router {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::request::Request;
+    use crate::{request::Request, response::Responder};
 
     #[test]
     fn lcp() {
