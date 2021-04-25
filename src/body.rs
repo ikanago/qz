@@ -26,3 +26,9 @@ impl From<&str> for Body {
         Self::Some(Vec::from(value.as_bytes()))
     }
 }
+
+impl From<Vec<u8>> for Body {
+    fn from(value: Vec<u8>) -> Self {
+        Self::Some(value)
+    }
+}

@@ -1,24 +1,22 @@
-extern crate qz;
-
-use qz::{request::Request, response::Responder, server::ServerBuilder, status::StatusCode};
+use qz::{request::Request, server::ServerBuilder};
+use std::io;
 
 async fn hello(_request: Request) -> &'static str {
     "hello"
 }
 
-async fn hoge(_request: Request) -> impl Responder {
-    StatusCode::Ok
-}
-
 #[tokio::main]
-async fn main() {
+async fn main() -> io::Result<()> {
     let port = 8080;
-    let server = ServerBuilder::new(port)
-        .await
-        .unwrap()
-        .route("/", hello)
-        .route("/hoge", hoge)
+    ServerBuilder::new(port)
+        .await?
+        // .route("/", |_| async { "It works!" })
+        .serve_dir("/", "./html")
+        .serve_dir("/static", "./static")
+        .route("/hello", hello)
         .route("/fuga", |_| async { "fuga" })
-        .build();
-    server.run().await.unwrap();
+        .build()
+        .run()
+        .await?;
+    Ok(())
 }

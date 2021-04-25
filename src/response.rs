@@ -1,5 +1,3 @@
-use tokio::io::{self, AsyncWrite, AsyncWriteExt};
-
 use crate::{
     body::Body,
     header::{HeaderName, HeaderValue},
@@ -7,6 +5,7 @@ use crate::{
     Version,
 };
 use std::collections::HashMap;
+use tokio::io::{self, AsyncWrite, AsyncWriteExt};
 
 /// Builder of `Response`.
 pub trait Responder: Sized {
@@ -51,6 +50,22 @@ impl Responder for &'static str {
     }
 }
 
+impl Responder for Vec<u8> {
+    fn respond_to(self) -> Response {
+        let mut headers = HashMap::new();
+        headers.insert(
+            HeaderName::ContentLength,
+            self.len().to_string().as_bytes().to_vec(),
+        );
+        Response {
+            status_code: StatusCode::Ok,
+            version: Version::default(),
+            headers,
+            body: Body::from(self),
+        }
+    }
+}
+
 /// Represents HTTP response.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Response {
@@ -69,6 +84,10 @@ impl Response {
         self.version
     }
 
+    pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
+        self.headers.insert(name, value);
+    }
+
     pub async fn send<W>(&self, connection: &mut W) -> io::Result<()>
     where
         W: AsyncWrite + Unpin,
@@ -85,12 +104,12 @@ impl Response {
         for (name, value) in self.headers.iter() {
             // Consider to use `AsyncWriteExt::write_vectored()`
             connection.write_all(name.as_ref()).await?;
-            connection.write_all(b" ").await?;
+            connection.write_all(b": ").await?;
             connection.write_all(&value).await?;
             connection.write_all(b"\r\n").await?;
         }
-        connection.write_all(self.body.as_ref()).await?;
         connection.write_all(b"\r\n").await?;
+        connection.write_all(self.body.as_ref()).await?;
         connection.flush().await
     }
 }

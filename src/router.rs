@@ -112,7 +112,7 @@ impl Router {
 
     fn split_wildcard(&mut self) {
         assert!(includes_wildcard(&self.path));
-        assert!(self.path.len() > 2);
+        assert!(self.path.len() >= 2);
         let (_, path) = self.path.split_last().unwrap();
         self.path = path.to_vec();
         self.children.push(Box::new(Self {
