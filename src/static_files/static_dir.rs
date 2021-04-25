@@ -49,6 +49,15 @@ impl Handler for StaticDir {
         if let Err(_) = file_to_serve.read_to_end(&mut buffer).await {
             return StatusCode::NotFound.respond_to();
         }
-        buffer.respond_to()
+        let mut response = buffer.respond_to();
+        let mime_type = if request.uri().0.ends_with(b".html") {
+            b"text/html".to_vec()
+        } else if request.uri().0.ends_with(b".png") {
+            b"image/png".to_vec()
+        } else {
+            b"text/plain".to_vec()
+        };
+        response.set_header(crate::header::HeaderName::ContentType, mime_type);
+        response
     }
 }

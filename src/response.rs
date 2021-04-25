@@ -1,5 +1,3 @@
-use tokio::io::{self, AsyncWrite, AsyncWriteExt};
-
 use crate::{
     body::Body,
     header::{HeaderName, HeaderValue},
@@ -7,6 +5,7 @@ use crate::{
     Version,
 };
 use std::collections::HashMap;
+use tokio::io::{self, AsyncWrite, AsyncWriteExt};
 
 /// Builder of `Response`.
 pub trait Responder: Sized {
@@ -83,6 +82,10 @@ impl Response {
 
     pub fn version(&self) -> Version {
         self.version
+    }
+
+    pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
+        self.headers.insert(name, value);
     }
 
     pub async fn send<W>(&self, connection: &mut W) -> io::Result<()>

@@ -6,6 +6,7 @@ pub type HeaderValue = Vec<u8>;
 pub enum HeaderName {
     Accept,
     ContentLength,
+    ContentType,
     Host,
     UserAgent,
     Unknown,
@@ -16,6 +17,7 @@ impl AsRef<[u8]> for HeaderName {
         match self {
             HeaderName::Accept => b"Accept",
             HeaderName::ContentLength => b"Content-Length",
+            HeaderName::ContentType => b"Content-Type",
             HeaderName::Host => b"Host",
             HeaderName::UserAgent => b"User-Agent",
             HeaderName::Unknown => b"Unknown",
@@ -37,6 +39,7 @@ impl From<Vec<u8>> for HeaderName {
         match &name[..] {
             b"accept" => HeaderName::Accept,
             b"content-length" => HeaderName::ContentLength,
+            b"content-type" => HeaderName::ContentType,
             b"host" => HeaderName::Host,
             b"user-agent" => HeaderName::UserAgent,
             _ => HeaderName::Unknown,
