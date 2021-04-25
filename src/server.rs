@@ -3,9 +3,10 @@ use crate::{
     request::{ParseState, RequestBuffer},
     response::{Responder, Response},
     router::Router,
+    static_dir::StaticDir,
     status::StatusCode,
 };
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -18,7 +19,7 @@ pub struct ServerBuilder {
 
 impl ServerBuilder {
     pub async fn new(port: u16) -> io::Result<Self> {
-        let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
+        let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
         let router = Router::new();
         Ok(Self { listener, router })
     }
@@ -26,6 +27,19 @@ impl ServerBuilder {
     pub fn route<F: Handler>(mut self, path: &str, handler: F) -> Self {
         self.router.add_route(path, handler);
         self
+    }
+
+    /// Serve files under the directory.
+    /// `dir` is path to the directory and `serve_at` is a prefix of URI.
+    /// e.g. `self.serve_dir("./static/html", /static)` serves files under `./static/html` and
+    /// URI for the files will be like `/static/index.html`
+    pub fn serve_dir<P>(self, dir: P, serve_at: &str) -> Self
+    where
+        P: AsRef<Path>,
+    {
+        let mut serve_at_wildcard = serve_at.trim_end_matches("/").to_string();
+        serve_at_wildcard.push_str("/*");
+        self.route(&serve_at_wildcard, StaticDir::mount(dir, serve_at))
     }
 
     pub fn build(self) -> Server {
@@ -46,10 +60,18 @@ impl Server {
     const INITIAL_BUFFER_SIZE: usize = 1024;
 
     pub async fn run(&self) -> io::Result<()> {
+        println!("Listening on {}", self.listener.local_addr()?);
         loop {
-            let (mut stream, _) = self.listener.accept().await?;
+            let (mut stream, _) = match self.listener.accept().await {
+                Ok(stream) => stream,
+                Err(e) => {
+                    eprintln!("{}", e);
+                    break Ok(());
+                }
+            };
             let router = Arc::clone(&self.router);
             tokio::spawn(async move {
+                dbg!("hoge");
                 if let Ok(response) = Self::process(&mut stream, router).await {
                     if let Err(err) = response.send(&mut stream).await {
                         eprintln!("{}", err);
