@@ -1,18 +1,21 @@
 use qz::{request::Request, server::ServerBuilder};
+use std::io;
 
 async fn hello(_request: Request) -> &'static str {
     "hello"
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> io::Result<()> {
     let port = 8080;
-    let server = ServerBuilder::new(port)
-        .await
-        .unwrap()
-        .route("/", hello)
-        .serve_dir("./static", "/static")
+    ServerBuilder::new(port)
+        .await?
+        .serve_file("/", "./LICENSE")?
+        .serve_dir("/static", "./static")
+        .route("/hello", hello)
         .route("/fuga", |_| async { "fuga" })
-        .build();
-    server.run().await.unwrap();
+        .build()
+        .run()
+        .await?;
+    Ok(())
 }

@@ -1,7 +1,9 @@
 mod static_dir;
+mod static_file;
 
 use crate::Uri;
 pub use static_dir::StaticDir;
+pub use static_file::StaticFile;
 use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
@@ -42,11 +44,11 @@ fn find_file(path: &Uri, mount_dir: &Path, serve_at: &Path) -> Result<PathBuf, (
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Uri;
     use tokio::{
         fs::{self, File},
         io,
     };
-    use crate::Uri;
 
     // Creates ./static_dir_test/static/index.html for tests.
     // First this function uses `tempfile` crate, but temporary directory which is created with the

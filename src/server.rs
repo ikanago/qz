@@ -3,7 +3,7 @@ use crate::{
     request::{ParseState, RequestBuffer},
     response::{Responder, Response},
     router::Router,
-    static_files::StaticDir,
+    static_files::{StaticDir, StaticFile},
     status::StatusCode,
 };
 use std::{path::Path, sync::Arc};
@@ -33,13 +33,21 @@ impl ServerBuilder {
     /// `dir` is path to the directory and `serve_at` is a prefix of URI.
     /// e.g. `self.serve_dir("./static/html", /static)` serves files under `./static/html` and
     /// URI for the files will be like `/static/index.html`
-    pub fn serve_dir<P>(self, dir: P, serve_at: &str) -> Self
+    pub fn serve_dir<P>(self, serve_at: &str, dir: P) -> Self
     where
         P: AsRef<Path>,
     {
         let mut serve_at_wildcard = serve_at.trim_end_matches("/").to_string();
         serve_at_wildcard.push_str("/*");
         self.route(&serve_at_wildcard, StaticDir::mount(dir, serve_at))
+    }
+
+    pub fn serve_file<P>(self, serve_at: &str, path: P) -> io::Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let file = StaticFile::mount(path)?;
+        Ok(self.route(&serve_at, file))
     }
 
     pub fn build(self) -> Server {
@@ -71,7 +79,6 @@ impl Server {
             };
             let router = Arc::clone(&self.router);
             tokio::spawn(async move {
-                dbg!("hoge");
                 if let Ok(response) = Self::process(&mut stream, router).await {
                     if let Err(err) = response.send(&mut stream).await {
                         eprintln!("{}", err);
