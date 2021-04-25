@@ -3,7 +3,7 @@ use crate::{
     request::{ParseState, RequestBuffer},
     response::{Responder, Response},
     router::Router,
-    static_dir::StaticDir,
+    static_files::StaticDir,
     status::StatusCode,
 };
 use std::{path::Path, sync::Arc};
