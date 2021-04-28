@@ -52,15 +52,15 @@ impl Responder for &'static str {
 
 impl Responder for Vec<u8> {
     fn respond_to(self) -> Response {
-        let mut headers = HashMap::new();
-        headers.insert(
-            HeaderName::ContentLength,
-            self.len().to_string().as_bytes().to_vec(),
-        );
         Response {
             status_code: StatusCode::Ok,
             version: Version::default(),
-            headers,
+            headers: vec![(
+                HeaderName::ContentLength,
+                self.len().to_string().as_bytes().to_vec(),
+            )]
+            .into_iter()
+            .collect(),
             body: Body::from(self),
         }
     }
@@ -69,10 +69,10 @@ impl Responder for Vec<u8> {
 /// Represents HTTP response.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Response {
-    status_code: StatusCode,
-    headers: HashMap<HeaderName, HeaderValue>,
-    version: Version,
-    body: Body,
+    pub(crate) status_code: StatusCode,
+    pub(crate) headers: HashMap<HeaderName, HeaderValue>,
+    pub(crate) version: Version,
+    pub(crate) body: Body,
 }
 
 impl Response {
@@ -86,6 +86,14 @@ impl Response {
 
     pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
         self.headers.insert(name, value);
+    }
+
+    pub fn headers(&self) -> &HashMap<HeaderName, HeaderValue> {
+        &self.headers
+    }
+
+    pub fn body(&self) -> &Body {
+        &self.body
     }
 
     pub async fn send<W>(&self, connection: &mut W) -> io::Result<()>
@@ -120,13 +128,13 @@ mod tests {
 
     #[test]
     fn response_from_str() {
-        let mut headers = HashMap::new();
-        headers.insert(HeaderName::ContentLength, b"13".to_vec());
         assert_eq!(
             Response {
                 status_code: StatusCode::Ok,
                 version: Version::OneDotOne,
-                headers,
+                headers: vec![(HeaderName::ContentLength, b"13".to_vec())]
+                    .into_iter()
+                    .collect(),
                 body: Body::Some(b"Hello, World!".to_vec()),
             },
             "Hello, World!".respond_to()

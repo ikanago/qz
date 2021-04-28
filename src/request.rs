@@ -9,10 +9,10 @@ use std::{collections::HashMap, fmt, str};
 /// Represents HTTP request. This struct is built from `RequestBuffer` and passed to `Handler`.
 #[derive(Debug, Default, PartialEq)]
 pub struct Request {
-    method: Method,
-    uri: Uri,
-    version: Version,
-    headers: HashMap<HeaderName, HeaderValue>,
+    pub(crate) method: Method,
+    pub(crate) uri: Uri,
+    pub(crate) version: Version,
+    pub(crate) headers: HashMap<HeaderName, HeaderValue>,
 }
 
 impl Request {

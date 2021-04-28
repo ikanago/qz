@@ -6,3 +6,4 @@ Cargo.lock
 # Testing
 static
 static_dir_test
+html
