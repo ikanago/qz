@@ -75,7 +75,7 @@ impl fmt::Display for Version {
 impl TryFrom<&[u8]> for Version {
     type Error = StatusCode;
     fn try_from(value: &[u8]) -> Result<Self> {
-        match &value[..] {
+        match value {
             b"1.1" => Ok(Version::OneDotOne),
             _ => Err(StatusCode::HttpVersionNotSupported),
         }

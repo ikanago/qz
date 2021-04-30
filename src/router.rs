@@ -58,7 +58,7 @@ impl Router {
     pub fn add_route<B: AsRef<[u8]>, F: Handler>(&mut self, new_path: B, handler: F) {
         let new_path = new_path.as_ref();
         // For the first time to insert node to root.
-        if self.path.len() == 0 && self.children.len() == 0 {
+        if self.path.is_empty() && self.children.is_empty() {
             self.children
                 .push(Box::new(Router::new_child(new_path, handler)));
             return;
@@ -82,7 +82,7 @@ impl Router {
                 handler: std::mem::take(&mut self.handler),
                 children: std::mem::take(&mut self.children),
             };
-            if new_path_remaining.len() > 0 {
+            if !new_path_remaining.is_empty() {
                 // e.g. "abc" and "ade".
                 self.children = vec![
                     Box::new(deriving_child),
@@ -100,7 +100,7 @@ impl Router {
             // e.g. `self.path`: "static" and `new_path`: "static/index.html"
             let new_path_remaining = &new_path[lcp..];
             for child in &mut self.children {
-                match (*child).path.iter().next() {
+                match (*child).path.get(0) {
                     // Because more than 2 children node do not have same prefix,
                     // just check first character of key for each child.
                     Some(first_char) if first_char == new_path_remaining.iter().next().unwrap() => {
@@ -130,7 +130,7 @@ impl Router {
 
     pub fn find<B: AsRef<[u8]>>(&self, key: B) -> Option<&Box<dyn Handler>> {
         let key = key.as_ref();
-        if key.len() == 0 {
+        if key.is_empty() {
             return None;
         }
         if &self.path[..] > key {
@@ -147,7 +147,7 @@ impl Router {
             if &child.path == b"*" {
                 return child.handler.as_ref();
             }
-            match (*child).path.iter().next() {
+            match (*child).path.get(0) {
                 // Because more than 2 children node do not have the same prefix,
                 // just check first character of key for each child.
                 Some(first_char) if first_char == key_remaining.iter().next().unwrap() => {
