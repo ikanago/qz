@@ -1,6 +1,7 @@
 use crate::{
     body::Body,
     header::{HeaderName, HeaderValue},
+    mime,
     status::StatusCode,
     Version,
 };
@@ -14,12 +15,7 @@ pub trait Responder: Sized {
 
 impl Responder for () {
     fn respond_to(self) -> Response {
-        Response {
-            status_code: StatusCode::Ok,
-            version: Version::default(),
-            headers: HashMap::default(),
-            body: Body::default(),
-        }
+        Response::default()
     }
 }
 
@@ -36,15 +32,18 @@ impl Responder for StatusCode {
 
 impl Responder for &'static str {
     fn respond_to(self) -> Response {
-        let mut headers = HashMap::new();
-        headers.insert(
-            HeaderName::ContentLength,
-            self.len().to_string().as_bytes().to_vec(),
-        );
         Response {
             status_code: StatusCode::Ok,
             version: Version::default(),
-            headers,
+            headers: vec![
+                (
+                    HeaderName::ContentLength,
+                    self.len().to_string().as_bytes().to_vec(),
+                ),
+                (HeaderName::ContentType, mime::TEXT_PLAIN.to_vec()),
+            ]
+            .into_iter()
+            .collect(),
             body: Body::from(self),
         }
     }
@@ -52,15 +51,15 @@ impl Responder for &'static str {
 
 impl Responder for Vec<u8> {
     fn respond_to(self) -> Response {
-        let mut headers = HashMap::new();
-        headers.insert(
-            HeaderName::ContentLength,
-            self.len().to_string().as_bytes().to_vec(),
-        );
         Response {
             status_code: StatusCode::Ok,
             version: Version::default(),
-            headers,
+            headers: vec![(
+                HeaderName::ContentLength,
+                self.len().to_string().as_bytes().to_vec(),
+            )]
+            .into_iter()
+            .collect(),
             body: Body::from(self),
         }
     }
@@ -69,10 +68,10 @@ impl Responder for Vec<u8> {
 /// Represents HTTP response.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Response {
-    status_code: StatusCode,
-    headers: HashMap<HeaderName, HeaderValue>,
-    version: Version,
-    body: Body,
+    pub(crate) status_code: StatusCode,
+    pub(crate) headers: HashMap<HeaderName, HeaderValue>,
+    pub(crate) version: Version,
+    pub(crate) body: Body,
 }
 
 impl Response {
@@ -84,8 +83,24 @@ impl Response {
         self.version
     }
 
+    pub fn headers(&self) -> &HashMap<HeaderName, HeaderValue> {
+        &self.headers
+    }
+
+    pub fn get_header(&self, header_name: &HeaderName) -> Option<&HeaderValue> {
+        self.headers.get(header_name)
+    }
+
     pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
         self.headers.insert(name, value);
+    }
+
+    pub fn body(&self) -> &Body {
+        &self.body
+    }
+
+    pub fn set_body(&mut self, bytes: Vec<u8>) {
+        self.body = Body::Some(bytes);
     }
 
     pub async fn send<W>(&self, connection: &mut W) -> io::Result<()>
@@ -120,29 +135,24 @@ mod tests {
 
     #[test]
     fn response_from_str() {
-        let mut headers = HashMap::new();
-        headers.insert(HeaderName::ContentLength, b"13".to_vec());
+        let response = "Hello, World!".respond_to();
+        assert_eq!(StatusCode::Ok, response.status_code());
         assert_eq!(
-            Response {
-                status_code: StatusCode::Ok,
-                version: Version::OneDotOne,
-                headers,
-                body: Body::Some(b"Hello, World!".to_vec()),
-            },
-            "Hello, World!".respond_to()
+            Some(&b"13".to_vec()),
+            response.get_header(&HeaderName::ContentLength)
         );
+        assert_eq!(
+            Some(&b"text/plain".to_vec()),
+            response.get_header(&HeaderName::ContentType)
+        );
+        assert_eq!(&Body::Some(b"Hello, World!".to_vec()), response.body());
     }
 
     #[test]
     fn response_from_status_code() {
-        assert_eq!(
-            Response {
-                status_code: StatusCode::NotFound,
-                version: Version::OneDotOne,
-                headers: HashMap::new(),
-                body: Body::None
-            },
-            StatusCode::NotFound.respond_to()
-        );
+        let response = StatusCode::NotFound.respond_to();
+        assert_eq!(StatusCode::NotFound, response.status_code());
+        assert_eq!(0, response.headers().len());
+        assert_eq!(&Body::None, response.body());
     }
 }

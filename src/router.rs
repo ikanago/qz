@@ -25,15 +25,21 @@ impl Router {
     }
 
     fn new_child<F: Handler>(path: &[u8], handler: F) -> Self {
-        let mut child = Self {
-            path: path.to_vec(),
-            handler: Some(Box::new(handler)),
-            children: Vec::new(),
-        };
         if includes_wildcard(path) && !path.starts_with(b"*") {
-            child.split_wildcard();
+            let mut child = Self {
+                path: path.to_vec(),
+                handler: None,
+                children: Vec::new(),
+            };
+            child.split_wildcard(handler);
+            child
+        } else {
+            Self {
+                path: path.to_vec(),
+                handler: Some(Box::new(handler)),
+                children: Vec::new(),
+            }
         }
-        child
     }
 
     /// Return how many common character path of `Route` nodes and an arugument have.
@@ -110,14 +116,14 @@ impl Router {
         }
     }
 
-    fn split_wildcard(&mut self) {
+    fn split_wildcard<F: Handler>(&mut self, handler: F) {
         assert!(includes_wildcard(&self.path));
         assert!(self.path.len() >= 2);
         let (_, path) = self.path.split_last().unwrap();
         self.path = path.to_vec();
         self.children.push(Box::new(Self {
             path: b"*".to_vec(),
-            handler: None,
+            handler: Some(Box::new(handler)),
             children: Vec::new(),
         }));
     }
@@ -137,10 +143,9 @@ impl Router {
 
         let lcp = self.longest_common_prefix(key);
         let key_remaining = &key[lcp..];
-
         for child in &self.children {
             if &child.path == b"*" {
-                return self.handler.as_ref();
+                return child.handler.as_ref();
             }
             match (*child).path.iter().next() {
                 // Because more than 2 children node do not have the same prefix,
@@ -158,7 +163,8 @@ impl Router {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{request::Request, response::Responder};
+    use crate::{body::Body, request::Request, response::Response};
+    use async_trait::async_trait;
 
     #[test]
     fn lcp() {
@@ -180,16 +186,30 @@ mod tests {
         assert_eq!(node_x.longest_common_prefix(b"abchoge"), 0);
     }
 
-    async fn dummy_handler(_request: Request) -> impl Responder {
-        unimplemented!()
+    macro_rules! impl_dummy_handler {
+        ($id: ident, $body:expr) => {
+            #[derive(Clone, Debug, PartialEq, Eq)]
+            struct $id;
+
+            #[async_trait]
+            impl Handler for $id {
+                async fn call(&self, _request: Request) -> Response {
+                    let mut response = Response::default();
+                    response.set_body($body.as_bytes().to_vec());
+                    response
+                }
+            }
+        };
     }
+
+    impl_dummy_handler!(Dummy, "dummy");
 
     #[test]
     fn find() {
         let mut tree = Router::new();
         let keys = vec!["/", "to", "tea", "ted", "hoge", "h", "i", "in", "inn"];
         for key in &keys {
-            tree.add_route(key.as_bytes(), dummy_handler);
+            tree.add_route(key.as_bytes(), Dummy);
         }
         for key in keys {
             tree.find(key.as_bytes()).unwrap();
@@ -214,7 +234,7 @@ mod tests {
         let count = 1000;
         let keys = (0..count).map(|_| random_bytes()).collect::<Vec<Vec<_>>>();
         for key in &keys {
-            tree.add_route(key, dummy_handler);
+            tree.add_route(key, Dummy);
         }
         for key in &keys {
             tree.find(key).unwrap();
@@ -226,7 +246,7 @@ mod tests {
         let mut tree = Router::new();
         let paths = vec!["/", "/index.html", "/static/*"];
         for key in &paths {
-            tree.add_route(key.as_bytes(), dummy_handler);
+            tree.add_route(key.as_bytes(), Dummy);
         }
         let queries = vec![
             "/",
@@ -243,7 +263,35 @@ mod tests {
     #[test]
     fn dont_match_substr() {
         let mut tree = Router::new();
-        tree.add_route(b"/hoge", dummy_handler);
+        tree.add_route(b"/hoge", Dummy);
         assert!(tree.find(b"/ho").is_none())
+    }
+
+    #[tokio::test]
+    async fn longest_match_wildcard() {
+        impl_dummy_handler!(Root, "root");
+        impl_dummy_handler!(Wildcard, "wildcard");
+
+        let mut tree = Router::new();
+        tree.add_route(b"/", Root);
+        tree.add_route(b"/*", Wildcard);
+        // Handlers are dispatched dynamically in `Router`, so I have no idea to compare
+        // them. They are distinguished with response body this functions returns.
+        assert_eq!(
+            &Body::Some(b"root".to_vec()),
+            tree.find(b"/")
+                .unwrap()
+                .call(Request::default())
+                .await
+                .body()
+        );
+        assert_eq!(
+            &Body::Some(b"wildcard".to_vec()),
+            tree.find(b"/hoge")
+                .unwrap()
+                .call(Request::default())
+                .await
+                .body()
+        );
     }
 }

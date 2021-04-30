@@ -32,3 +32,9 @@ impl From<Vec<u8>> for Body {
         Self::Some(value)
     }
 }
+
+impl From<&[u8]> for Body {
+    fn from(value: &[u8]) -> Self {
+        Self::Some(value.to_vec())
+    }
+}

@@ -2,6 +2,7 @@ pub mod body;
 pub mod handler;
 pub mod header;
 pub mod method;
+mod mime;
 mod parser;
 pub mod request;
 pub mod response;
