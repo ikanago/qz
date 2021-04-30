@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 tokio = { version = "1.5", features = ["rt", "rt-multi-thread", "net", "io-util", "macros", "sync", "fs"] }
-radix_trie = "0.2"
 
 [dev-dependencies]
 rand = "0.8"
