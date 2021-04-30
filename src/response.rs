@@ -83,10 +83,6 @@ impl Response {
         self.version
     }
 
-    pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
-        self.headers.insert(name, value);
-    }
-
     pub fn headers(&self) -> &HashMap<HeaderName, HeaderValue> {
         &self.headers
     }
@@ -95,8 +91,16 @@ impl Response {
         self.headers.get(header_name)
     }
 
+    pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
+        self.headers.insert(name, value);
+    }
+
     pub fn body(&self) -> &Body {
         &self.body
+    }
+
+    pub fn set_body(&mut self, bytes: Vec<u8>) {
+        self.body = Body::Some(bytes);
     }
 
     pub async fn send<W>(&self, connection: &mut W) -> io::Result<()>

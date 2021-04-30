@@ -21,5 +21,6 @@ macro_rules! define_mime_types {
 define_mime_types!(
     (TEXT_PLAIN, "text/plain", "txt"),
     (TEXT_HTML, "text/html", "html"),
+    (IMAGE_JPG, "image/jpg", "jpg"),
     (IMAGE_PNG, "image/png", "png"),
 );
