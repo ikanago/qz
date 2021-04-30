@@ -6,7 +6,6 @@ use qz::{
     static_files::{StaticDir, StaticFile},
     status::StatusCode,
 };
-use std::collections::HashMap;
 use std::io;
 
 #[tokio::test]
@@ -21,10 +20,12 @@ async fn static_file() -> io::Result<()> {
     let response = handler.call(request).await;
     assert_eq!(StatusCode::Ok, response.status_code());
     assert_eq!(
-        &vec![(HeaderName::ContentLength, b"13".to_vec())]
-            .into_iter()
-            .collect::<HashMap<_, _>>(),
-        response.headers()
+        Some(&b"13".to_vec()),
+        response.get_header(&HeaderName::ContentLength)
+    );
+    assert_eq!(
+        Some(&b"text/html".to_vec()),
+        response.get_header(&HeaderName::ContentType)
     );
     assert_eq!(&Body::from(&b"<p>Hello</p>\n"[..]), response.body());
     Ok(())
@@ -42,13 +43,12 @@ async fn static_dir() -> io::Result<()> {
     let response = handler.call(request).await;
     assert_eq!(StatusCode::Ok, response.status_code());
     assert_eq!(
-        &vec![
-            (HeaderName::ContentLength, b"13".to_vec()),
-            (HeaderName::ContentType, b"text/html".to_vec())
-        ]
-        .into_iter()
-        .collect::<HashMap<_, _>>(),
-        response.headers()
+        Some(&b"13".to_vec()),
+        response.get_header(&HeaderName::ContentLength)
+    );
+    assert_eq!(
+        Some(&b"text/html".to_vec()),
+        response.get_header(&HeaderName::ContentType)
     );
     assert_eq!(&Body::from(&b"<p>Hello</p>\n"[..]), response.body());
     Ok(())

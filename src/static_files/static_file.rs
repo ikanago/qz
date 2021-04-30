@@ -5,6 +5,8 @@ use std::{
 
 use crate::{
     handler::Handler,
+    header::HeaderName,
+    mime,
     request::Request,
     response::{Responder, Response},
     status::StatusCode,
@@ -26,12 +28,17 @@ impl StaticFile {
 #[async_trait]
 impl Handler for StaticFile {
     async fn call(&self, _request: Request) -> Response {
+        let filename = self.path.clone();
+        let mime_type = mime::filename_to_mime(&filename);
         // This should return internal server error.
-        let mut file_to_serve = File::open(self.path.clone()).await.unwrap();
+        let mut file_to_serve = File::open(filename).await.unwrap();
+
         let mut buffer = Vec::new();
         if file_to_serve.read_to_end(&mut buffer).await.is_err() {
             return StatusCode::NotFound.respond_to();
         }
-        buffer.respond_to()
+        let mut response = buffer.respond_to();
+        response.set_header(HeaderName::ContentType, mime_type.to_vec());
+        response
     }
 }

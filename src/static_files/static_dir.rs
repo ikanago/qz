@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     handler::Handler,
+    header::HeaderName,
+    mime,
     request::Request,
     response::{Responder, Response},
     static_files::find_file,
@@ -41,6 +43,7 @@ impl Handler for StaticDir {
             Err(()) => return StatusCode::NotFound.respond_to(),
         };
 
+        let mime_type = mime::filename_to_mime(&found_file);
         let mut file_to_serve = match File::open(found_file).await {
             Ok(file) => file,
             Err(_) => return StatusCode::NotFound.respond_to(),
@@ -50,14 +53,7 @@ impl Handler for StaticDir {
             return StatusCode::NotFound.respond_to();
         }
         let mut response = buffer.respond_to();
-        let mime_type = if request.uri().0.ends_with(b".html") {
-            b"text/html".to_vec()
-        } else if request.uri().0.ends_with(b".png") {
-            b"image/png".to_vec()
-        } else {
-            b"text/plain".to_vec()
-        };
-        response.set_header(crate::header::HeaderName::ContentType, mime_type);
+        response.set_header(HeaderName::ContentType, mime_type.to_vec());
         response
     }
 }
