@@ -98,10 +98,10 @@ impl Server {
                 Ok(_) => match request_buf.try_parse(&buf) {
                     Ok(ParseState::Completed) => break,
                     Ok(_) => continue,
-                    Err(_) => return Err(()),
+                    Err(code) => return Ok(code.respond_to()),
                 },
                 Err(_) => {
-                    return Ok(StatusCode::NotFound.respond_to());
+                    return Err(());
                 }
             };
         }
@@ -112,7 +112,10 @@ impl Server {
             Some(handler) => handler,
             None => return Ok(StatusCode::NotFound.respond_to()),
         };
-        let response = handler.call(request).await;
-        return Ok(response);
+        let response = match handler.call(request).await {
+            Ok(response) => response,
+            Err(code) => code.respond_to(),
+        };
+        Ok(response)
     }
 }

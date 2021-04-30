@@ -1,18 +1,11 @@
 use crate::{
     header::{HeaderName, HeaderValue},
     method::Method,
+    status::StatusCode,
     Uri, Version,
 };
 use std::convert::TryFrom;
 use std::str;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParseError {
-    InvalidMethod,
-    InvalidUri,
-    InvalidVersion,
-    LackOfDelim,
-}
 
 #[derive(Debug)]
 pub struct Parser<'a> {
@@ -50,59 +43,63 @@ impl<'a> Parser<'a> {
     }
 
     /// Consume a first element and return error if it does not equal to `target`.
-    pub fn expect(&mut self, target: u8, error: ParseError) -> Result<(), ParseError> {
+    pub fn expect(&mut self, target: u8, error: StatusCode) -> crate::Result<()> {
         match self.consume() {
             Some(b) if b == target => Ok(()),
             _ => Err(error),
         }
     }
 
-    pub fn parse_request_line(&mut self) -> Result<(Method, Uri, Version), ParseError> {
+    pub fn parse_request_line(&mut self) -> crate::Result<(Method, Uri, Version)> {
         let method = self.parse_method()?;
         let uri = self.parse_uri()?;
         let version = self.parse_version()?;
-        self.expect(b'\n', ParseError::LackOfDelim)?;
+        self.expect(b'\n', StatusCode::BadRequest)?;
         Ok((method, uri, version))
     }
 
-    fn parse_method(&mut self) -> Result<Method, ParseError> {
+    fn parse_method(&mut self) -> crate::Result<Method> {
         match self.read_until_whitespace() {
             Some(method) => Method::try_from(method),
-            None => Err(ParseError::InvalidMethod),
+            None => Err(StatusCode::BadRequest),
         }
     }
 
-    fn parse_uri(&mut self) -> Result<Uri, ParseError> {
-        let uri = self.read_until_whitespace().ok_or(ParseError::InvalidUri)?;
+    fn parse_uri(&mut self) -> crate::Result<Uri> {
+        let uri = self.read_until_whitespace().ok_or(StatusCode::BadRequest)?;
         if uri.starts_with(&[b'/']) {
             Ok(Uri::new(uri))
         } else {
-            Err(ParseError::InvalidUri)
+            Err(StatusCode::BadRequest)
         }
     }
 
-    fn parse_version(&mut self) -> Result<Version, ParseError> {
-        let protocol = self.read_until(b'/').ok_or(ParseError::InvalidVersion)?;
+    fn parse_version(&mut self) -> crate::Result<Version> {
+        let protocol = self
+            .read_until(b'/')
+            .ok_or(StatusCode::HttpVersionNotSupported)?;
         match str::from_utf8(protocol) {
             Ok("HTTP") => (),
-            _ => return Err(ParseError::InvalidVersion),
+            _ => return Err(StatusCode::HttpVersionNotSupported),
         }
-        let version = self.read_until(b'\r').ok_or(ParseError::InvalidVersion)?;
+        let version = self
+            .read_until(b'\r')
+            .ok_or(StatusCode::HttpVersionNotSupported)?;
         Version::try_from(version)
     }
 
-    pub fn parse_header(&mut self) -> Result<(HeaderName, HeaderValue), ParseError> {
+    pub fn parse_header(&mut self) -> crate::Result<(HeaderName, HeaderValue)> {
         let header_name = self
             .read_until(b':')
-            .ok_or(ParseError::LackOfDelim)?
+            .ok_or(StatusCode::BadRequest)?
             .to_vec();
         let header_name = HeaderName::from(header_name);
-        self.expect(b' ', ParseError::LackOfDelim)?;
+        self.expect(b' ', StatusCode::BadRequest)?;
         let header_value = self
             .read_until(b'\r')
-            .ok_or(ParseError::LackOfDelim)?
+            .ok_or(StatusCode::BadRequest)?
             .to_vec();
-        self.expect(b'\n', ParseError::LackOfDelim)?;
+        self.expect(b'\n', StatusCode::BadRequest)?;
         Ok((header_name, header_value))
     }
 }

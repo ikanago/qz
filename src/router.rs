@@ -193,10 +193,10 @@ mod tests {
 
             #[async_trait]
             impl Handler for $id {
-                async fn call(&self, _request: Request) -> Response {
+                async fn call(&self, _request: Request) -> crate::Result<Response> {
                     let mut response = Response::default();
                     response.set_body($body.as_bytes().to_vec());
-                    response
+                    Ok(response)
                 }
             }
         };
@@ -283,6 +283,7 @@ mod tests {
                 .unwrap()
                 .call(Request::default())
                 .await
+                .unwrap()
                 .body()
         );
         assert_eq!(
@@ -291,6 +292,7 @@ mod tests {
                 .unwrap()
                 .call(Request::default())
                 .await
+                .unwrap()
                 .body()
         );
     }

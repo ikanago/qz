@@ -7,7 +7,6 @@ use crate::{
     request::Request,
     response::{Responder, Response},
     static_files::find_file,
-    status::StatusCode,
 };
 use async_trait::async_trait;
 use tokio::{fs::File, io::AsyncReadExt};
@@ -33,27 +32,19 @@ impl StaticDir {
 
 #[async_trait]
 impl Handler for StaticDir {
-    async fn call(&self, request: Request) -> Response {
-        let found_file = match find_file(
+    async fn call(&self, request: Request) -> crate::Result<Response> {
+        let found_file = find_file(
             request.uri(),
             self.mount_dir.as_path(),
             self.serve_at.as_path(),
-        ) {
-            Ok(path) => path,
-            Err(()) => return StatusCode::NotFound.respond_to(),
-        };
+        )?;
 
         let mime_type = mime::filename_to_mime(&found_file);
-        let mut file_to_serve = match File::open(found_file).await {
-            Ok(file) => file,
-            Err(_) => return StatusCode::NotFound.respond_to(),
-        };
+        let mut file_to_serve = File::open(found_file).await?;
         let mut buffer = Vec::new();
-        if let Err(_) = file_to_serve.read_to_end(&mut buffer).await {
-            return StatusCode::NotFound.respond_to();
-        }
+        file_to_serve.read_to_end(&mut buffer).await?;
         let mut response = buffer.respond_to();
         response.set_header(HeaderName::ContentType, mime_type.to_vec());
-        response
+        Ok(response)
     }
 }

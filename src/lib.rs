@@ -11,8 +11,12 @@ pub mod server;
 pub mod static_files;
 pub mod status;
 
-use crate::parser::ParseError;
+use crate::status::StatusCode;
 use std::{convert::TryFrom, fmt, str};
+
+/// All errornous function returns this type. because all error in this crate converges HTTP error which is
+/// represented by status code.
+pub type Result<T> = std::result::Result<T, StatusCode>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Uri(Vec<u8>);
@@ -69,11 +73,11 @@ impl fmt::Display for Version {
 }
 
 impl TryFrom<&[u8]> for Version {
-    type Error = ParseError;
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+    type Error = StatusCode;
+    fn try_from(value: &[u8]) -> Result<Self> {
         match &value[..] {
             b"1.1" => Ok(Version::OneDotOne),
-            _ => Err(ParseError::InvalidVersion),
+            _ => Err(StatusCode::HttpVersionNotSupported),
         }
     }
 }
