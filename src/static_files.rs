@@ -1,7 +1,7 @@
 mod static_dir;
 mod static_file;
 
-use crate::Uri;
+use crate::{status::StatusCode, Uri};
 pub use static_dir::StaticDir;
 pub use static_file::StaticFile;
 use std::{
@@ -9,12 +9,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-fn find_file(path: &Uri, mount_dir: &Path, serve_at: &Path) -> Result<PathBuf, ()> {
+fn find_file(path: &Uri, mount_dir: &Path, serve_at: &Path) -> crate::Result<PathBuf> {
     let path = std::str::from_utf8(&path.0).unwrap();
     let path = Path::new(path);
     let path = match path.strip_prefix(serve_at) {
         Ok(path) => path,
-        Err(_) => return Err(()),
+        Err(_) => return Err(StatusCode::NotFound),
     };
 
     let mut file_to_find = mount_dir.to_path_buf();
@@ -25,7 +25,7 @@ fn find_file(path: &Uri, mount_dir: &Path, serve_at: &Path) -> Result<PathBuf, (
             if !file_to_find.pop() {
                 // Forbid to access file which is out of mount point to prevent directory
                 // traversal attack.
-                return Err(());
+                return Err(StatusCode::Forbidden);
             }
         } else {
             file_to_find.push(p);
@@ -33,10 +33,10 @@ fn find_file(path: &Uri, mount_dir: &Path, serve_at: &Path) -> Result<PathBuf, (
     }
 
     if !file_to_find.starts_with(&mount_dir) {
-        return Err(());
+        return Err(StatusCode::NotFound);
     }
     if !file_to_find.exists() {
-        return Err(());
+        return Err(StatusCode::NotFound);
     }
     Ok(file_to_find)
 }

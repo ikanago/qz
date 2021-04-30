@@ -1,3 +1,5 @@
+use std::io;
+
 macro_rules! define_status_codes {
     ($(($num:expr, $entry:ident, $phrase:expr),)+) => {
         #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,7 +31,15 @@ macro_rules! define_status_codes {
     }
 }
 
-define_status_codes!((200, Ok, "OK"), (404, NotFound, "Not Found"),);
+define_status_codes!(
+    (200, Ok, "OK"),
+    (400, BadRequest, "Bad Request"),
+    (403, Forbidden, "Forbidden"),
+    (404, NotFound, "Not Found"),
+    (405, MethodNotAllowed, "Method Not Allowed"),
+    (500, InternalServerError, "Internal Server Error"),
+    (505, HttpVersionNotSupported, "HTTP Version not Supported"),
+);
 
 impl StatusCode {
     const ASCII_ZERO: u8 = 48;
@@ -48,5 +58,16 @@ impl StatusCode {
 impl Default for StatusCode {
     fn default() -> Self {
         StatusCode::Ok
+    }
+}
+
+impl From<io::Error> for StatusCode {
+    fn from(err: io::Error) -> Self {
+        use io::ErrorKind::*;
+        match err.kind() {
+            NotFound => StatusCode::NotFound,
+            PermissionDenied => StatusCode::Forbidden,
+            _ => StatusCode::InternalServerError,
+        }
     }
 }

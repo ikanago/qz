@@ -1,7 +1,7 @@
 use crate::{
     header::{HeaderName, HeaderValue},
     method::Method,
-    parser::{ParseError, Parser},
+    parser::Parser,
     Uri, Version,
 };
 use std::{collections::HashMap, fmt, str};
@@ -36,7 +36,7 @@ impl Request {
         &self.headers
     }
 
-    fn parse_request_line(&mut self, bytes: &[u8]) -> Result<(), ParseError> {
+    fn parse_request_line(&mut self, bytes: &[u8]) -> crate::Result<()> {
         let mut p = Parser::new(bytes);
         let (method, uri, version) = p.parse_request_line()?;
         self.method = method;
@@ -45,7 +45,7 @@ impl Request {
         Ok(())
     }
 
-    fn parse_header(&mut self, bytes: &[u8]) -> Result<(), ParseError> {
+    fn parse_header(&mut self, bytes: &[u8]) -> crate::Result<()> {
         let mut p = Parser::new(bytes);
         let (name, value) = p.parse_header()?;
         self.headers.insert(name, value);
@@ -101,7 +101,7 @@ impl RequestBuffer {
     }
 
     /// Extend buffer of this struct with `data` and try to parse given request data.
-    pub fn try_parse(&mut self, data: &[u8]) -> Result<ParseState, ParseError> {
+    pub fn try_parse(&mut self, data: &[u8]) -> crate::Result<ParseState> {
         self.buffer.extend_from_slice(&data);
         let mut buf_iter = self.buffer.iter();
         let mut parse_start = 0;

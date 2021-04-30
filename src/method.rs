@@ -1,4 +1,4 @@
-use crate::parser::ParseError;
+use crate::status::StatusCode;
 use std::{convert::TryFrom, fmt};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -21,11 +21,11 @@ impl fmt::Display for Method {
 }
 
 impl TryFrom<&[u8]> for Method {
-    type Error = ParseError;
+    type Error = StatusCode;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         match std::str::from_utf8(value) {
             Ok("GET") => Ok(Method::Get),
-            _ => Err(Self::Error::InvalidMethod),
+            _ => Err(StatusCode::MethodNotAllowed),
         }
     }
 }

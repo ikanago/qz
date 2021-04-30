@@ -8,7 +8,7 @@ use std::{fmt, future::Future};
 /// Abstruction over all process to create response from request.
 #[async_trait]
 pub trait Handler: Send + Sync + 'static {
-    async fn call(&self, request: Request) -> Response;
+    async fn call(&self, request: Request) -> crate::Result<Response>;
 }
 
 #[async_trait]
@@ -18,8 +18,8 @@ where
     Fut: Future + Send + 'static,
     Fut::Output: Responder,
 {
-    async fn call(&self, request: Request) -> Response {
-        self(request).await.respond_to()
+    async fn call(&self, request: Request) -> crate::Result<Response> {
+        Ok(self(request).await.respond_to())
     }
 }
 
