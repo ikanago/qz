@@ -21,7 +21,7 @@ use std::{
 
 /// All errornous function returns this type. because all error in this crate converges HTTP error which is
 /// represented by status code.
-pub type Result<T> = std::result::Result<T, StatusCode>;
+pub type Result<T, E = StatusCode> = std::result::Result<T, E>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Uri(Vec<u8>);

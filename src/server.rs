@@ -126,7 +126,7 @@ impl Server {
         let request = request_buf.complete();
         let request = match middlewares.run(request).await {
             Ok(request) => request,
-            Err(code) => return Ok(code.respond_to()),
+            Err(response) => return Ok(response),
         };
         println!("{}", request);
         let handler = match router.find(request.uri()) {
