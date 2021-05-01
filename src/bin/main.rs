@@ -1,4 +1,4 @@
-use qz::{request::Request, server::ServerBuilder};
+use qz::{redirect::Redirect, request::Request, server::ServerBuilder, Uri};
 use std::io;
 
 async fn hello(_request: Request) -> &'static str {
@@ -11,8 +11,9 @@ async fn main() -> io::Result<()> {
     ServerBuilder::new(port)
         .await?
         .route("/", |_| async { "It works!" })
-        .serve_dir("/", "./html")
+        // .serve_dir("/", "./html")
         .route("/hello", hello)
+        .route("/example", Redirect::new(Uri::from("http://example.com")))
         .build()
         .run()
         .await?;

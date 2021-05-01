@@ -33,6 +33,9 @@ macro_rules! define_status_codes {
 
 define_status_codes!(
     (200, Ok, "OK"),
+    (301, MovedPermanently, "Moved Permanently"),
+    (302, Found, "Found"),
+    (303, SeeOther, "See Other"),
     (400, BadRequest, "Bad Request"),
     (403, Forbidden, "Forbidden"),
     (404, NotFound, "Not Found"),
