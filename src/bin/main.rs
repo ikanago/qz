@@ -1,4 +1,12 @@
-use qz::{Uri, redirect::Redirect, request::Request, response::{Responder, Response}, server::ServerBuilder, status::StatusCode, middleware::BasicAuth};
+use qz::{
+    middleware::BasicAuth,
+    redirect::Redirect,
+    request::Request,
+    response::{Responder, Response},
+    server::ServerBuilder,
+    status::StatusCode,
+    Uri,
+};
 use std::io;
 
 async fn teapot(_request: Request) -> Response {
