@@ -8,6 +8,7 @@ pub enum HeaderName {
     ContentLength,
     ContentType,
     Host,
+    Location,
     UserAgent,
     Unknown,
 }
@@ -19,6 +20,7 @@ impl AsRef<[u8]> for HeaderName {
             HeaderName::ContentLength => b"Content-Length",
             HeaderName::ContentType => b"Content-Type",
             HeaderName::Host => b"Host",
+            &HeaderName::Location => b"Location",
             HeaderName::UserAgent => b"User-Agent",
             HeaderName::Unknown => b"Unknown",
         }
@@ -40,6 +42,7 @@ impl From<Vec<u8>> for HeaderName {
             b"accept" => HeaderName::Accept,
             b"content-length" => HeaderName::ContentLength,
             b"content-type" => HeaderName::ContentType,
+            b"location" => HeaderName::Location,
             b"host" => HeaderName::Host,
             b"user-agent" => HeaderName::UserAgent,
             _ => HeaderName::Unknown,

@@ -37,7 +37,7 @@ impl ServerBuilder {
     where
         P: AsRef<Path>,
     {
-        let mut serve_at_wildcard = serve_at.trim_end_matches("/").to_string();
+        let mut serve_at_wildcard = serve_at.trim_end_matches('/').to_string();
         serve_at_wildcard.push_str("/*");
         self.route(&serve_at_wildcard, StaticDir::mount(dir, serve_at))
     }
