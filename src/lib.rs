@@ -13,7 +13,10 @@ pub mod static_files;
 pub mod status;
 
 use crate::status::StatusCode;
-use std::{convert::{From, TryFrom}, fmt, str};
+use std::{
+    convert::{From, TryFrom},
+    fmt, str,
+};
 
 /// All errornous function returns this type. because all error in this crate converges HTTP error which is
 /// represented by status code.
