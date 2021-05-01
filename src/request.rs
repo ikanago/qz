@@ -36,6 +36,14 @@ impl Request {
         &self.headers
     }
 
+    pub fn get_header(&self, name: HeaderName) -> Option<&HeaderValue> {
+        self.headers.get(&name)
+    }
+
+    pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
+        self.headers.insert(name, value);
+    }
+
     fn parse_request_line(&mut self, bytes: &[u8]) -> crate::Result<()> {
         let mut p = Parser::new(bytes);
         let (method, uri, version) = p.parse_request_line()?;

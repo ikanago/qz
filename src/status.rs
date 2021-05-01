@@ -37,6 +37,7 @@ define_status_codes!(
     (302, Found, "Found"),
     (303, SeeOther, "See Other"),
     (400, BadRequest, "Bad Request"),
+    (401, Unauthorized, "Unauthorized"),
     (403, Forbidden, "Forbidden"),
     (404, NotFound, "Not Found"),
     (405, MethodNotAllowed, "Method Not Allowed"),

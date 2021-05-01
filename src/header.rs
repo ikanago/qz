@@ -5,11 +5,13 @@ pub type HeaderValue = Vec<u8>;
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum HeaderName {
     Accept,
+    Authorization,
     ContentLength,
     ContentType,
     Host,
     Location,
     UserAgent,
+    WwwAuthenticate,
     Unknown,
 }
 
@@ -17,11 +19,13 @@ impl AsRef<[u8]> for HeaderName {
     fn as_ref(&self) -> &[u8] {
         match self {
             HeaderName::Accept => b"Accept",
+            HeaderName::Authorization => b"Authorization",
             HeaderName::ContentLength => b"Content-Length",
             HeaderName::ContentType => b"Content-Type",
             HeaderName::Host => b"Host",
-            &HeaderName::Location => b"Location",
+            HeaderName::Location => b"Location",
             HeaderName::UserAgent => b"User-Agent",
+            HeaderName::WwwAuthenticate => b"WWW-Authenticate",
             HeaderName::Unknown => b"Unknown",
         }
     }
@@ -40,11 +44,13 @@ impl From<Vec<u8>> for HeaderName {
         name.make_ascii_lowercase();
         match &name[..] {
             b"accept" => HeaderName::Accept,
+            b"authorization" => HeaderName::Authorization,
             b"content-length" => HeaderName::ContentLength,
             b"content-type" => HeaderName::ContentType,
             b"location" => HeaderName::Location,
             b"host" => HeaderName::Host,
             b"user-agent" => HeaderName::UserAgent,
+            b"www-authenticate" => HeaderName::WwwAuthenticate,
             _ => HeaderName::Unknown,
         }
     }
