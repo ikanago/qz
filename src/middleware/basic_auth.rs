@@ -83,6 +83,13 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn not_protected_by_basic_auth() {
+        let basic_auth = BasicAuth::new("user", "pass", Uri::from("/example"));
+        let request = Request::default();
+        basic_auth.call(request).await.unwrap();
+    }
+
+    #[tokio::test]
     async fn fail_basic_auth() {
         let basic_auth = BasicAuth::new("user", "pass", Uri::from("/"));
         let mut request = Request::default();

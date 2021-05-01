@@ -10,7 +10,7 @@ async fn main() -> io::Result<()> {
     let port = 8080;
     ServerBuilder::new(port)
         .await?
-        .with(BasicAuth::new("user", "password", Uri::from("/")))
+        .with(BasicAuth::new("user", "password", Uri::from("/hello")))
         .route("/", |_| async { "It works!" })
         // .serve_dir("/", "./html")
         .route("/hello", hello)
