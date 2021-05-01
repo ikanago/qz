@@ -1,5 +1,6 @@
 use crate::{
     handler::Handler,
+    middleware::{Middleware, MiddlewareChain},
     request::{ParseState, RequestBuffer},
     response::{Responder, Response},
     router::Router,
@@ -14,14 +15,23 @@ use tokio::net::{TcpListener, TcpStream};
 /// The reason of this struct is to make `Server.router` immutable.
 pub struct ServerBuilder {
     listener: TcpListener,
+    middlewares: MiddlewareChain,
     router: Router,
 }
 
 impl ServerBuilder {
     pub async fn new(port: u16) -> io::Result<Self> {
         let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
-        let router = Router::new();
-        Ok(Self { listener, router })
+        Ok(Self {
+            listener,
+            middlewares: MiddlewareChain::new(),
+            router: Router::new(),
+        })
+    }
+
+    pub fn with<M: Middleware>(mut self, middleware: M) -> Self {
+        self.middlewares.push(middleware);
+        self
     }
 
     pub fn route<F: Handler>(mut self, path: &str, handler: F) -> Self {
@@ -53,6 +63,7 @@ impl ServerBuilder {
     pub fn build(self) -> Server {
         Server {
             listener: self.listener,
+            middlewares: Arc::new(self.middlewares),
             router: Arc::new(self.router),
         }
     }
@@ -61,6 +72,7 @@ impl ServerBuilder {
 pub struct Server {
     listener: TcpListener,
     // Wrap with `Arc` to pass over tokio task without moving `self`.
+    middlewares: Arc<MiddlewareChain>,
     router: Arc<Router>,
 }
 
@@ -77,9 +89,10 @@ impl Server {
                     break Ok(());
                 }
             };
+            let middlewares = Arc::clone(&self.middlewares);
             let router = Arc::clone(&self.router);
             tokio::spawn(async move {
-                if let Ok(response) = Self::process(&mut stream, router).await {
+                if let Ok(response) = Self::process(&mut stream, middlewares, router).await {
                     if let Err(err) = response.send(&mut stream).await {
                         eprintln!("{}", err);
                     }
@@ -89,7 +102,11 @@ impl Server {
         }
     }
 
-    async fn process(stream: &mut TcpStream, router: Arc<Router>) -> Result<Response, ()> {
+    async fn process(
+        stream: &mut TcpStream,
+        middlewares: Arc<MiddlewareChain>,
+        router: Arc<Router>,
+    ) -> Result<Response, ()> {
         let mut request_buf = RequestBuffer::new();
         let mut buf = vec![0; Self::INITIAL_BUFFER_SIZE];
         loop {
@@ -107,15 +124,19 @@ impl Server {
         }
 
         let request = request_buf.complete();
+        let request = match middlewares.run(request).await {
+            Ok(request) => request,
+            Err(response) => return Ok(response),
+        };
         println!("{}", request);
         let handler = match router.find(request.uri()) {
             Some(handler) => handler,
             None => return Ok(StatusCode::NotFound.respond_to()),
         };
-        let response = match handler.call(request).await {
-            Ok(response) => response,
-            Err(code) => code.respond_to(),
-        };
+        let response = handler
+            .call(request)
+            .await
+            .unwrap_or_else(|code| code.respond_to());
         Ok(response)
     }
 }

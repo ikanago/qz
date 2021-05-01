@@ -2,6 +2,7 @@ pub mod body;
 pub mod handler;
 pub mod header;
 pub mod method;
+pub mod middleware;
 mod mime;
 mod parser;
 pub mod redirect;
@@ -20,7 +21,7 @@ use std::{
 
 /// All errornous function returns this type. because all error in this crate converges HTTP error which is
 /// represented by status code.
-pub type Result<T> = std::result::Result<T, StatusCode>;
+pub type Result<T, E = StatusCode> = std::result::Result<T, E>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Uri(Vec<u8>);

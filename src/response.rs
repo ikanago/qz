@@ -87,8 +87,8 @@ impl Response {
         &self.headers
     }
 
-    pub fn get_header(&self, header_name: &HeaderName) -> Option<&HeaderValue> {
-        self.headers.get(header_name)
+    pub fn get_header(&self, name: &HeaderName) -> Option<&HeaderValue> {
+        self.headers.get(name)
     }
 
     pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
