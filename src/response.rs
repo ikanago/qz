@@ -19,6 +19,12 @@ impl Responder for () {
     }
 }
 
+impl Responder for Response {
+    fn respond_to(self) -> Response {
+        self
+    }
+}
+
 impl Responder for StatusCode {
     fn respond_to(self) -> Response {
         Response {

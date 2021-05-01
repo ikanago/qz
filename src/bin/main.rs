@@ -1,5 +1,19 @@
-use qz::{middleware::BasicAuth, redirect::Redirect, request::Request, server::ServerBuilder, Uri};
+use qz::{
+    middleware::BasicAuth,
+    redirect::Redirect,
+    request::Request,
+    response::{Responder, Response},
+    server::ServerBuilder,
+    status::StatusCode,
+    Uri,
+};
 use std::io;
+
+async fn teapot(_request: Request) -> Response {
+    let mut response = StatusCode::IMATeapot.respond_to();
+    response.set_body(b"<h1>I'm a teapot;)</h1>".to_vec());
+    response
+}
 
 async fn hello(_request: Request) -> &'static str {
     "hello"
@@ -13,6 +27,7 @@ async fn main() -> io::Result<()> {
         .with(BasicAuth::new("user", "password", Uri::from("/hello")))
         .route("/", |_| async { "It works!" })
         // .serve_dir("/", "./html")
+        .route("/teapot", teapot)
         .route("/hello", hello)
         .route("/example", Redirect::new(Uri::from("http://example.com")))
         .build()
