@@ -21,8 +21,8 @@ impl AsRef<[u8]> for Body {
     }
 }
 
-impl From<&str> for Body {
-    fn from(value: &str) -> Self {
+impl<'a> From<&'a str> for Body {
+    fn from(value: &'a str) -> Self {
         Self::Some(Vec::from(value.as_bytes()))
     }
 }

@@ -1,11 +1,11 @@
 use qz::{
-    middleware::BasicAuth, redirect::Redirect, request::Request, responder::Responder,
-    response::Response, server::ServerBuilder, status::StatusCode, Uri,
+    middleware::BasicAuth, redirect::Redirect, request::Request, response::Response,
+    server::ServerBuilder, status::StatusCode, Uri,
 };
 use std::io;
 
 async fn teapot(_request: Request) -> Response {
-    let mut response = StatusCode::IMATeapot.respond_to();
+    let mut response = Response::from(StatusCode::IMATeapot);
     response.set_body(b"<h1>I'm a teapot;)</h1>".to_vec());
     response
 }

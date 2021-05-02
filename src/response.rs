@@ -1,10 +1,11 @@
 use crate::{
     body::Body,
     header::{HeaderName, HeaderValue},
+    mime,
     status::StatusCode,
     Version,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::From};
 use tokio::io::{self, AsyncWrite, AsyncWriteExt};
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -24,12 +25,12 @@ impl ResponseBuilder {
         self
     }
 
-    pub fn set_header(mut self, name: HeaderName, value: HeaderValue) -> Self {
-        self.inner.set_header(name, value);
+    pub fn set_header(mut self, name: HeaderName, value: impl Into<HeaderValue>) -> Self {
+        self.inner.set_header(name, value.into());
         self
     }
 
-    pub fn set_body(mut self, body: Vec<u8>) -> Self {
+    pub fn set_body(mut self, body: impl Into<Body>) -> Self {
         self.inner.set_body(body);
         self
     }
@@ -69,16 +70,16 @@ impl Response {
         self.headers.get(name)
     }
 
-    pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
-        self.headers.insert(name, value);
+    pub fn set_header(&mut self, name: HeaderName, value: impl Into<HeaderValue>) {
+        self.headers.insert(name, value.into());
     }
 
     pub fn body(&self) -> &Body {
         &self.body
     }
 
-    pub fn set_body(&mut self, bytes: Vec<u8>) {
-        self.body = Body::Some(bytes);
+    pub fn set_body(&mut self, bytes: impl Into<Body>) {
+        self.body = bytes.into()
     }
 
     pub async fn send<W>(&self, connection: &mut W) -> io::Result<()>
@@ -107,14 +108,47 @@ impl Response {
     }
 }
 
+impl From<StatusCode> for Response {
+    fn from(code: StatusCode) -> Self {
+        Response::builder().set_status_code(code).build()
+    }
+}
+
+impl<'a> From<&'a str> for Response {
+    fn from(s: &'a str) -> Self {
+        Response::builder()
+            .set_header(HeaderName::ContentLength, s.len().to_string())
+            .set_header(HeaderName::ContentType, mime::TEXT_PLAIN.to_vec())
+            .set_body(Body::from(s))
+            .build()
+    }
+}
+
+impl From<Vec<u8>> for Response {
+    fn from(bytes: Vec<u8>) -> Self {
+        Response::builder()
+            .set_header(HeaderName::ContentLength, bytes.len().to_string())
+            .set_body(Body::from(bytes))
+            .build()
+    }
+}
+
+impl<'a> From<&'a [u8]> for Response {
+    fn from(bytes: &'a [u8]) -> Self {
+        Response::builder()
+            .set_header(HeaderName::ContentLength, bytes.len().to_string())
+            .set_body(Body::from(bytes))
+            .build()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::responder::Responder;
 
     #[test]
     fn response_from_str() {
-        let response = "Hello, World!".respond_to();
+        let response = Response::from("Hello, World!");
         assert_eq!(StatusCode::Ok, response.status_code());
         assert_eq!(
             Some(&b"13".to_vec()),
@@ -129,7 +163,7 @@ mod tests {
 
     #[test]
     fn response_from_status_code() {
-        let response = StatusCode::NotFound.respond_to();
+        let response = Response::from(StatusCode::NotFound);
         assert_eq!(StatusCode::NotFound, response.status_code());
         assert_eq!(0, response.headers().len());
         assert_eq!(&Body::None, response.body());

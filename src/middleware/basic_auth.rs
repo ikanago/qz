@@ -1,6 +1,6 @@
 use crate::{
-    header::HeaderName, middleware::Middleware, request::Request, responder::Responder,
-    response::Response, status::StatusCode, Uri,
+    header::HeaderName, middleware::Middleware, request::Request, response::Response,
+    status::StatusCode, Uri,
 };
 use async_trait::async_trait;
 use base64;
@@ -57,8 +57,8 @@ impl Middleware for BasicAuth {
         if self.is_protected_uri(uri) {
             if let Err(code) = self.check_credential(&request) {
                 assert_eq!(StatusCode::Unauthorized, code);
-                let mut response = code.respond_to();
-                response.set_header(HeaderName::WwwAuthenticate, b"Basic".to_vec());
+                let mut response = Response::from(code);
+                response.set_header(HeaderName::WwwAuthenticate, "Basic");
                 return Err(response);
             }
         }
@@ -74,7 +74,7 @@ mod tests {
     async fn simple_basic_auth() {
         let basic_auth = BasicAuth::new("user", "pass", Uri::from("/"));
         let request = Request::builder()
-            .set_header(HeaderName::Authorization, b"Basic dXNlcjpwYXNz".to_vec())
+            .set_header(HeaderName::Authorization, "Basic dXNlcjpwYXNz")
             .build();
         basic_auth.call(request).await.unwrap();
     }
@@ -90,7 +90,7 @@ mod tests {
     async fn fail_basic_auth() {
         let basic_auth = BasicAuth::new("user", "pass", Uri::from("/"));
         let request = Request::builder()
-            .set_header(HeaderName::Authorization, b"Basic wrong_hash".to_vec())
+            .set_header(HeaderName::Authorization, "Basic wrong_hash")
             .build();
         let response = match basic_auth.call(request).await {
             Ok(_) => unreachable!("Provided hash must be wrong"),

@@ -1,4 +1,4 @@
-use crate::{request::Request, responder::Responder, response::Response};
+use crate::{request::Request, response::Response};
 use async_trait::async_trait;
 use std::{fmt, future::Future};
 
@@ -13,10 +13,10 @@ impl<F, Fut> Handler for F
 where
     F: Send + Sync + 'static + Fn(Request) -> Fut,
     Fut: Future + Send + 'static,
-    Fut::Output: Responder,
+    Fut::Output: Into<Response>,
 {
     async fn call(&self, request: Request) -> crate::Result<Response> {
-        Ok(self(request).await.respond_to())
+        Ok(self(request).await.into())
     }
 }
 

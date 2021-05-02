@@ -28,8 +28,8 @@ impl RequestBuilder {
         self
     }
 
-    pub fn set_header(mut self, name: HeaderName, value: HeaderValue) -> Self {
-        self.inner.headers.insert(name, value);
+    pub fn set_header(mut self, name: HeaderName, value: impl Into<HeaderValue>) -> Self {
+        self.inner.headers.insert(name, value.into());
         self
     }
 
@@ -76,8 +76,8 @@ impl Request {
         self.headers.get(&name)
     }
 
-    pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
-        self.headers.insert(name, value);
+    pub fn set_header(&mut self, name: HeaderName, value: impl Into<HeaderValue>) {
+        self.headers.insert(name, value.into());
     }
 
     fn parse_request_line(&mut self, bytes: &[u8]) -> crate::Result<()> {

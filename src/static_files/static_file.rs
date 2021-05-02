@@ -3,10 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{
-    handler::Handler, header::HeaderName, mime, request::Request, responder::Responder,
-    response::Response,
-};
+use crate::{handler::Handler, header::HeaderName, mime, request::Request, response::Response};
 use async_trait::async_trait;
 use tokio::{fs::File, io::AsyncReadExt};
 
@@ -31,8 +28,8 @@ impl Handler for StaticFile {
 
         let mut buffer = Vec::new();
         file_to_serve.read_to_end(&mut buffer).await?;
-        let mut response = buffer.respond_to();
-        response.set_header(HeaderName::ContentType, mime_type.to_vec());
+        let mut response = Response::from(buffer);
+        response.set_header(HeaderName::ContentType, mime_type);
         Ok(response)
     }
 }
