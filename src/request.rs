@@ -1,7 +1,9 @@
 use crate::{
+    body::Body,
     header::{HeaderName, HeaderValue},
     method::Method,
     parser::Parser,
+    status::StatusCode,
     Uri, Version,
 };
 use std::{collections::HashMap, fmt, str};
@@ -33,6 +35,11 @@ impl RequestBuilder {
         self
     }
 
+    pub fn set_body(mut self, body: impl Into<Body>) -> Self {
+        self.inner.set_body(body);
+        self
+    }
+
     pub fn build(self) -> Request {
         self.inner
     }
@@ -45,6 +52,7 @@ pub struct Request {
     pub(crate) uri: Uri,
     pub(crate) version: Version,
     pub(crate) headers: HashMap<HeaderName, HeaderValue>,
+    pub(crate) body: Body,
 }
 
 impl Request {
@@ -80,6 +88,10 @@ impl Request {
         self.headers.insert(name, value.into());
     }
 
+    pub fn set_body(&mut self, body: impl Into<Body>) {
+        self.body = body.into();
+    }
+
     fn parse_request_line(&mut self, bytes: &[u8]) -> crate::Result<()> {
         let mut p = Parser::new(bytes);
         let (method, uri, version) = p.parse_request_line()?;
@@ -93,6 +105,22 @@ impl Request {
         let mut p = Parser::new(bytes);
         let (name, value) = p.parse_header()?;
         self.headers.insert(name, value);
+        Ok(())
+    }
+
+    fn parse_body(&mut self, bytes: &[u8]) -> crate::Result<()> {
+        let body_len = std::str::from_utf8(
+            self.get_header(HeaderName::ContentLength)
+                .ok_or(StatusCode::LengthRequired)?,
+        )
+        .or(Err(StatusCode::LengthRequired))?
+        .parse::<usize>()
+        .or(Err(StatusCode::LengthRequired))?;
+        let mut p = Parser::new(bytes);
+        dbg!(body_len);
+        dbg!(bytes.len());
+        let body = p.parse_body(body_len)?;
+        self.set_body(body);
         Ok(())
     }
 }
@@ -169,11 +197,14 @@ impl RequestBuffer {
                         ParseState::Headers => {
                             if dist_to_crlf == 0 {
                                 // CRLF only
+                                if self.request.get_header(HeaderName::ContentLength).is_none() {
+                                    break;
+                                }
+                                self.request.parse_body(&self.buffer[(parse_start + 2)..])?;
                                 self.state = ParseState::Completed;
-                                break;
                             } else {
                                 self.request
-                                    .parse_header(&self.buffer[parse_start..parse_end])?
+                                    .parse_header(&self.buffer[parse_start..parse_end])?;
                             }
                         }
                         _ => unreachable!(),
@@ -215,6 +246,7 @@ mod tests {
                 uri: Uri::new(b"/~/index.html"),
                 version: Version::OneDotOne,
                 headers: HashMap::new(),
+                body: Body::None,
             },
             request_buf.complete()
         );
@@ -245,6 +277,7 @@ mod tests {
                 ]
                 .into_iter()
                 .collect(),
+                body: Body::None
             },
             request_buf.complete()
         );
@@ -276,6 +309,35 @@ mod tests {
                 ]
                 .into_iter()
                 .collect(),
+                body: Body::None
+            },
+            request_buf.complete()
+        );
+    }
+
+    #[test]
+    fn build_request_with_body() {
+        let data = b"GET /~/index.html HTTP/1.1\r\nContent-Length: 13\r\n\r\nHello, World!"
+            .chunks(64)
+            .map(|c| c.to_vec())
+            .collect::<Vec<_>>();
+        let mut request_buf = RequestBuffer::new();
+        for message in data {
+            match request_buf.try_parse(&message) {
+                Ok(ParseState::Completed) => break,
+                Ok(_) => continue,
+                Err(_) => panic!(),
+            }
+        }
+        assert_eq!(
+            Request {
+                method: Method::Get,
+                uri: Uri::new(b"/~/index.html"),
+                version: Version::OneDotOne,
+                headers: vec![(HeaderName::ContentLength, b"13".to_vec()),]
+                    .into_iter()
+                    .collect(),
+                body: Body::Some(b"Hello, World!".to_vec()),
             },
             request_buf.complete()
         );
