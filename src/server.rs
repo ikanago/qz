@@ -2,7 +2,7 @@ use crate::{
     handler::Handler,
     middleware::{Middleware, MiddlewareChain},
     request::{ParseState, RequestBuffer},
-    response::{Responder, Response},
+    response::Response,
     router::Router,
     static_files::{StaticDir, StaticFile},
     status::StatusCode,
@@ -115,7 +115,7 @@ impl Server {
                 Ok(_) => match request_buf.try_parse(&buf) {
                     Ok(ParseState::Completed) => break,
                     Ok(_) => continue,
-                    Err(code) => return Ok(code.respond_to()),
+                    Err(code) => return Ok(Response::from(code)),
                 },
                 Err(_) => {
                     return Err(());
@@ -131,12 +131,12 @@ impl Server {
         println!("{}", request);
         let handler = match router.find(request.uri()) {
             Some(handler) => handler,
-            None => return Ok(StatusCode::NotFound.respond_to()),
+            None => return Ok(Response::from(StatusCode::NotFound)),
         };
         let response = handler
             .call(request)
             .await
-            .unwrap_or_else(|code| code.respond_to());
+            .unwrap_or_else(|code| Response::from(code));
         Ok(response)
     }
 }

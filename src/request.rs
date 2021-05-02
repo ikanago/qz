@@ -6,8 +6,40 @@ use crate::{
 };
 use std::{collections::HashMap, fmt, str};
 
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct RequestBuilder {
+    inner: Request,
+}
+
+impl RequestBuilder {
+    pub fn new() -> Self {
+        Self {
+            inner: Request::default(),
+        }
+    }
+
+    pub fn set_method(mut self, method: Method) -> Self {
+        self.inner.method = method;
+        self
+    }
+
+    pub fn set_uri(mut self, uri: Uri) -> Self {
+        self.inner.uri = uri;
+        self
+    }
+
+    pub fn set_header(mut self, name: HeaderName, value: impl Into<HeaderValue>) -> Self {
+        self.inner.headers.insert(name, value.into());
+        self
+    }
+
+    pub fn build(self) -> Request {
+        self.inner
+    }
+}
+
 /// Represents HTTP request. This struct is built from `RequestBuffer` and passed to `Handler`.
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Request {
     pub(crate) method: Method,
     pub(crate) uri: Uri,
@@ -18,6 +50,10 @@ pub struct Request {
 impl Request {
     fn new() -> Self {
         Self::default()
+    }
+
+    pub fn builder() -> RequestBuilder {
+        RequestBuilder::default()
     }
 
     pub fn method(&self) -> &Method {
@@ -40,8 +76,8 @@ impl Request {
         self.headers.get(&name)
     }
 
-    pub fn set_header(&mut self, name: HeaderName, value: HeaderValue) {
-        self.headers.insert(name, value);
+    pub fn set_header(&mut self, name: HeaderName, value: impl Into<HeaderValue>) {
+        self.headers.insert(name, value.into());
     }
 
     fn parse_request_line(&mut self, bytes: &[u8]) -> crate::Result<()> {
@@ -83,7 +119,7 @@ pub enum ParseState {
 ///
 /// There are two parsing strategies:
 /// * Read whole request, then parse it
-/// * Parse line by lien
+/// * Parse line by line
 ///
 /// Although the first option is easier, parsing request with message body is difficult
 /// because it is hard to know when to finish reading from socket.
