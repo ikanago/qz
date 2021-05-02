@@ -21,20 +21,26 @@ impl AsRef<[u8]> for Body {
     }
 }
 
+impl From<String> for Body {
+    fn from(s: String) -> Self {
+        Self::Some(s.into())
+    }
+}
+
 impl<'a> From<&'a str> for Body {
-    fn from(value: &'a str) -> Self {
-        Self::Some(Vec::from(value.as_bytes()))
+    fn from(s: &'a str) -> Self {
+        Self::Some(s.into())
     }
 }
 
 impl From<Vec<u8>> for Body {
-    fn from(value: Vec<u8>) -> Self {
-        Self::Some(value)
+    fn from(bytes: Vec<u8>) -> Self {
+        Self::Some(bytes)
     }
 }
 
 impl From<&[u8]> for Body {
-    fn from(value: &[u8]) -> Self {
-        Self::Some(value.to_vec())
+    fn from(bytes: &[u8]) -> Self {
+        Self::Some(bytes.into())
     }
 }

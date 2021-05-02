@@ -14,31 +14,31 @@ pub struct Redirect {
 impl Redirect {
     /// Create a redirect to `uri`.
     /// This method is alias to `Redirect::found()`.
-    pub fn new(uri: Uri) -> Self {
-        Self::found(uri)
+    pub fn new(uri: impl Into<Uri>) -> Self {
+        Self::found(uri.into())
     }
 
     /// Create a permanent redirect to `uri`.
-    pub fn moved_permanently(uri: Uri) -> Self {
+    pub fn moved_permanently(uri: impl Into<Uri>) -> Self {
         Self {
             status_code: StatusCode::MovedPermanently,
-            uri,
+            uri: uri.into(),
         }
     }
 
     /// Create a redirect to `uri`.
-    pub fn found(uri: Uri) -> Self {
+    pub fn found(uri: impl Into<Uri>) -> Self {
         Self {
             status_code: StatusCode::Found,
-            uri,
+            uri: uri.into(),
         }
     }
 
     /// Create a see other redirect to `uri`.
-    pub fn see_other(uri: Uri) -> Self {
+    pub fn see_other(uri: impl Into<Uri>) -> Self {
         Self {
             status_code: StatusCode::SeeOther,
-            uri,
+            uri: uri.into(),
         }
     }
 }

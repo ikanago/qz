@@ -13,12 +13,12 @@ pub struct BasicAuth {
 
 impl BasicAuth {
     /// Create new Basic authentication middleware. `auth_root` is the root of subtree to protect
-    pub fn new(username: &str, password: &str, auth_root: Uri) -> Self {
+    pub fn new(username: &str, password: &str, auth_root: impl Into<Uri>) -> Self {
         let credential = format!("{}:{}", username, password);
         let credential_hash = base64::encode(credential.as_bytes()).into_bytes();
         Self {
             credential_hash,
-            auth_root,
+            auth_root: auth_root.into(),
         }
     }
 
@@ -72,7 +72,7 @@ mod tests {
 
     #[tokio::test]
     async fn simple_basic_auth() {
-        let basic_auth = BasicAuth::new("user", "pass", Uri::from("/"));
+        let basic_auth = BasicAuth::new("user", "pass", "/");
         let request = Request::builder()
             .set_header(HeaderName::Authorization, "Basic dXNlcjpwYXNz")
             .build();
@@ -81,14 +81,14 @@ mod tests {
 
     #[tokio::test]
     async fn not_protected_by_basic_auth() {
-        let basic_auth = BasicAuth::new("user", "pass", Uri::from("/example"));
+        let basic_auth = BasicAuth::new("user", "pass", "/example");
         let request = Request::default();
         basic_auth.call(request).await.unwrap();
     }
 
     #[tokio::test]
     async fn fail_basic_auth() {
-        let basic_auth = BasicAuth::new("user", "pass", Uri::from("/"));
+        let basic_auth = BasicAuth::new("user", "pass", "/");
         let request = Request::builder()
             .set_header(HeaderName::Authorization, "Basic wrong_hash")
             .build();

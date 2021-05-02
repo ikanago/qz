@@ -7,7 +7,6 @@ mod mime;
 mod parser;
 pub mod redirect;
 pub mod request;
-pub mod responder;
 pub mod response;
 mod router;
 pub mod server;

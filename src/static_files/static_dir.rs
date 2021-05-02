@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::{
-    handler::Handler, header::HeaderName, mime, request::Request, response::Response,
-    static_files::find_file,
+    handler::Handler, mime, request::Request, response::Response, static_files::find_file,
 };
 use async_trait::async_trait;
 use tokio::{fs::File, io::AsyncReadExt};
@@ -40,7 +39,7 @@ impl Handler for StaticDir {
         let mut buffer = Vec::new();
         file_to_serve.read_to_end(&mut buffer).await?;
         let mut response = Response::from(buffer);
-        response.set_header(HeaderName::ContentType, mime_type);
+        response.set_content_type(mime_type);
         Ok(response)
     }
 }

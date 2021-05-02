@@ -30,6 +30,11 @@ impl ResponseBuilder {
         self
     }
 
+    pub fn set_content_type(mut self, mime_type: &[u8]) -> Self {
+        self.inner.set_content_type(mime_type);
+        self
+    }
+
     pub fn set_body(mut self, body: impl Into<Body>) -> Self {
         self.inner.set_body(body);
         self
@@ -74,6 +79,11 @@ impl Response {
         self.headers.insert(name, value.into());
     }
 
+    pub fn set_content_type(&mut self, mime_type: &[u8]) {
+        self.headers
+            .insert(HeaderName::ContentType, mime_type.to_vec());
+    }
+
     pub fn body(&self) -> &Body {
         &self.body
     }
@@ -114,11 +124,21 @@ impl From<StatusCode> for Response {
     }
 }
 
+impl From<String> for Response {
+    fn from(s: String) -> Self {
+        Response::builder()
+            .set_header(HeaderName::ContentLength, s.len().to_string())
+            .set_content_type(mime::TEXT_PLAIN)
+            .set_body(Body::from(s))
+            .build()
+    }
+}
+
 impl<'a> From<&'a str> for Response {
     fn from(s: &'a str) -> Self {
         Response::builder()
             .set_header(HeaderName::ContentLength, s.len().to_string())
-            .set_header(HeaderName::ContentType, mime::TEXT_PLAIN.to_vec())
+            .set_content_type(mime::TEXT_PLAIN)
             .set_body(Body::from(s))
             .build()
     }
