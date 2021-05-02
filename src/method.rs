@@ -1,7 +1,7 @@
 use crate::status::StatusCode;
 use std::{convert::TryFrom, fmt};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Method {
     Get,
     Post,

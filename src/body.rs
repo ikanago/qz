@@ -1,9 +1,36 @@
-use std::{fmt, convert::From};
+use std::{convert::From, fmt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Body {
     None,
     Some(Vec<u8>),
+}
+
+impl Body {
+    pub fn len(&self) -> usize {
+        match &self {
+            Body::Some(bytes) => bytes.len(),
+            Body::None => 0,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn is_some(&self) -> bool {
+        match &self {
+            Body::Some(_) => true,
+            Body::None => false,
+        }
+    }
+
+    pub fn is_none(&self) -> bool {
+        match &self {
+            Body::Some(_) => false,
+            Body::None => true,
+        }
+    }
 }
 
 impl Default for Body {
@@ -51,7 +78,7 @@ impl fmt::Display for Body {
             Body::Some(bytes) => match std::str::from_utf8(&bytes) {
                 Ok(s) => write!(f, "{}", s),
                 Err(_) => write!(f, "{:?}", bytes),
-            }
+            },
             Body::None => write!(f, ""),
         }
     }

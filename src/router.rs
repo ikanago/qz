@@ -1,12 +1,13 @@
-use crate::handler::Handler;
+use crate::{handler::Handler, method::Method, status::StatusCode};
+use std::collections::HashMap;
 
 /// Associates URI with `Handler`.
 /// URI paths are represented as trie tree.
 /// This struct is a node of the tree.
 #[derive(Debug)]
 pub struct Router {
-    pub path: Vec<u8>,
-    pub handler: Option<Box<dyn Handler>>,
+    path: Vec<u8>,
+    handlers: HashMap<Method, Box<dyn Handler>>,
     children: Vec<Box<Router>>,
 }
 
@@ -19,24 +20,26 @@ impl Router {
     pub fn new() -> Self {
         Self {
             path: Vec::new(),
-            handler: None,
+            handlers: HashMap::new(),
             children: Vec::new(),
         }
     }
 
-    fn new_child<F: Handler>(path: &[u8], handler: F) -> Self {
+    fn new_child<F: Handler>(path: &[u8], method: Method, handler: F) -> Self {
         if includes_wildcard(path) && !path.starts_with(b"*") {
             let mut child = Self {
                 path: path.to_vec(),
-                handler: None,
+                handlers: HashMap::new(),
                 children: Vec::new(),
             };
-            child.split_wildcard(handler);
+            child.split_wildcard(method, handler);
             child
         } else {
+            let mut handlers: HashMap<Method, Box<dyn Handler + 'static>> = HashMap::new();
+            handlers.insert(method, Box::new(handler));
             Self {
                 path: path.to_vec(),
-                handler: Some(Box::new(handler)),
+                handlers,
                 children: Vec::new(),
             }
         }
@@ -55,16 +58,21 @@ impl Router {
         pos
     }
 
-    pub fn add_route<B: AsRef<[u8]>, F: Handler>(&mut self, new_path: B, handler: F) {
+    pub fn add_route<B: AsRef<[u8]>, F: Handler>(
+        &mut self,
+        new_path: B,
+        method: Method,
+        handler: F,
+    ) {
         let new_path = new_path.as_ref();
         // For the first time to insert node to root.
         if self.path.is_empty() && self.children.is_empty() {
             self.children
-                .push(Box::new(Router::new_child(new_path, handler)));
+                .push(Box::new(Router::new_child(new_path, method, handler)));
             return;
         }
         if self.path == new_path {
-            self.handler = Some(Box::new(handler));
+            self.handlers.insert(method, Box::new(handler));
             return;
         }
 
@@ -79,20 +87,20 @@ impl Router {
             self.path = common_prefix.to_vec();
             let deriving_child = Self {
                 path: path_remaining.to_vec(),
-                handler: std::mem::take(&mut self.handler),
+                handlers: std::mem::take(&mut self.handlers),
                 children: std::mem::take(&mut self.children),
             };
             if !new_path_remaining.is_empty() {
                 // e.g. "abc" and "ade".
                 self.children = vec![
                     Box::new(deriving_child),
-                    Box::new(Router::new_child(new_path_remaining, handler)),
+                    Box::new(Router::new_child(new_path_remaining, method, handler)),
                 ];
             } else {
                 // e.g. "abc" and "a".
                 // If "a" is inserted in the same way as previous `if` block, a handler for the node "a"
                 // is replaced with `None` but the node has a `handler`.
-                self.handler = Some(Box::new(handler));
+                self.handlers.insert(method, Box::new(handler));
                 self.children = vec![Box::new(deriving_child)];
             }
         } else {
@@ -104,59 +112,70 @@ impl Router {
                     // Because more than 2 children node do not have same prefix,
                     // just check first character of key for each child.
                     Some(first_char) if first_char == new_path_remaining.iter().next().unwrap() => {
-                        child.add_route(new_path_remaining, handler);
+                        child.add_route(new_path_remaining, method, handler);
                         return;
                     }
                     _ => continue,
                 }
             }
             // If there is no child in `self.children` that matches new path, just insert it.
-            self.children
-                .push(Box::new(Router::new_child(new_path_remaining, handler)));
+            self.children.push(Box::new(Router::new_child(
+                new_path_remaining,
+                method,
+                handler,
+            )));
         }
     }
 
-    fn split_wildcard<F: Handler>(&mut self, handler: F) {
+    fn split_wildcard<F: Handler>(&mut self, method: Method, handler: F) {
         assert!(includes_wildcard(&self.path));
         assert!(self.path.len() >= 2);
         let (_, path) = self.path.split_last().unwrap();
         self.path = path.to_vec();
+        let mut handlers: HashMap<Method, Box<dyn Handler + 'static>> = HashMap::new();
+        handlers.insert(method, Box::new(handler));
         self.children.push(Box::new(Self {
             path: b"*".to_vec(),
-            handler: Some(Box::new(handler)),
+            handlers,
             children: Vec::new(),
         }));
     }
 
-    pub fn find<B: AsRef<[u8]>>(&self, key: B) -> Option<&Box<dyn Handler>> {
+    pub fn find<B: AsRef<[u8]>>(&self, key: B, method: Method) -> crate::Result<&Box<dyn Handler>> {
         let key = key.as_ref();
         if key.is_empty() {
-            return None;
+            return Err(StatusCode::NotFound);
         }
         if &self.path[..] > key {
             // e.g. `self.path` is "hoge" and `key` is "ho".
-            return None;
+            return Err(StatusCode::NotFound);
         }
-        if self.path == key {
-            return self.handler.as_ref();
+        if key == self.path {
+            match self.handlers.get(&method) {
+                Some(handler) => return Ok(&handler),
+                None => return Err(StatusCode::MethodNotAllowed),
+            }
         }
 
         let lcp = self.longest_common_prefix(key);
         let key_remaining = &key[lcp..];
         for child in &self.children {
             if &child.path == b"*" {
-                return child.handler.as_ref();
+                match child.handlers.get(&method) {
+                    Some(handler) => return Ok(&handler),
+                    None => return Err(StatusCode::MethodNotAllowed),
+                }
             }
             match (*child).path.get(0) {
                 // Because more than 2 children node do not have the same prefix,
                 // just check first character of key for each child.
                 Some(first_char) if first_char == key_remaining.iter().next().unwrap() => {
-                    return child.find(key_remaining);
+                    return child.find(key_remaining, method);
                 }
                 _ => continue,
             }
         }
-        None
+        Err(StatusCode::NotFound)
     }
 }
 
@@ -170,7 +189,7 @@ mod tests {
     fn lcp() {
         let node_x = Router {
             path: b"abcde".to_vec(),
-            handler: None,
+            handlers: HashMap::new(),
             children: Vec::new(),
         };
         assert_eq!(node_x.longest_common_prefix(b"abchoge"), 3);
@@ -180,7 +199,7 @@ mod tests {
     fn lcp_root() {
         let node_x = Router {
             path: b"".to_vec(),
-            handler: None,
+            handlers: HashMap::new(),
             children: Vec::new(),
         };
         assert_eq!(node_x.longest_common_prefix(b"abchoge"), 0);
@@ -209,10 +228,20 @@ mod tests {
         let mut tree = Router::new();
         let keys = vec!["/", "to", "tea", "ted", "hoge", "h", "i", "in", "inn"];
         for key in &keys {
-            tree.add_route(key.as_bytes(), Dummy);
+            tree.add_route(key.as_bytes(), Method::Get, Dummy);
         }
         for key in keys {
-            tree.find(key.as_bytes()).unwrap();
+            tree.find(key.as_bytes(), Method::Get).unwrap();
+        }
+    }
+
+    #[test]
+    fn invalid_method() {
+        let mut tree = Router::new();
+        tree.add_route("/example", Method::Get, Dummy);
+        match tree.find(b"/example", Method::Post) {
+            Ok(_) => panic!("No handler is registered for POST"),
+            Err(code) => assert_eq!(StatusCode::MethodNotAllowed, code),
         }
     }
 
@@ -234,10 +263,10 @@ mod tests {
         let count = 1000;
         let keys = (0..count).map(|_| random_bytes()).collect::<Vec<Vec<_>>>();
         for key in &keys {
-            tree.add_route(key, Dummy);
+            tree.add_route(key, Method::Get, Dummy);
         }
         for key in &keys {
-            tree.find(key).unwrap();
+            tree.find(key, Method::Get).unwrap();
         }
     }
 
@@ -246,7 +275,7 @@ mod tests {
         let mut tree = Router::new();
         let paths = vec!["/", "/index.html", "/static/*"];
         for key in &paths {
-            tree.add_route(key.as_bytes(), Dummy);
+            tree.add_route(key.as_bytes(), Method::Get, Dummy);
         }
         let queries = vec![
             "/",
@@ -256,15 +285,25 @@ mod tests {
             "/static/index.js",
         ];
         for query in &queries {
-            tree.find(query.as_bytes()).unwrap();
+            tree.find(query.as_bytes(), Method::Get).unwrap();
         }
     }
 
     #[test]
     fn dont_match_substr() {
         let mut tree = Router::new();
-        tree.add_route(b"/hoge", Dummy);
-        assert!(tree.find(b"/ho").is_none())
+        tree.add_route(b"/hoge", Method::Get, Dummy);
+        assert!(tree.find(b"/ho", Method::Get).is_err())
+    }
+
+    async fn extract_body(tree: &Router, key: &[u8], method: Method) -> Body {
+        tree.find(key, method)
+            .unwrap()
+            .call(Request::default())
+            .await
+            .unwrap()
+            .body()
+            .clone()
     }
 
     #[tokio::test]
@@ -273,27 +312,37 @@ mod tests {
         impl_dummy_handler!(Wildcard, "wildcard");
 
         let mut tree = Router::new();
-        tree.add_route(b"/", Root);
-        tree.add_route(b"/*", Wildcard);
+        tree.add_route(b"/", Method::Get, Root);
+        tree.add_route(b"/*", Method::Get, Wildcard);
         // Handlers are dispatched dynamically in `Router`, so I have no idea to compare
         // them. They are distinguished with response body this functions returns.
         assert_eq!(
-            &Body::Some(b"root".to_vec()),
-            tree.find(b"/")
-                .unwrap()
-                .call(Request::default())
-                .await
-                .unwrap()
-                .body()
+            Body::Some(b"root".to_vec()),
+            extract_body(&tree, b"/", Method::Get).await
         );
         assert_eq!(
-            &Body::Some(b"wildcard".to_vec()),
-            tree.find(b"/hoge")
-                .unwrap()
-                .call(Request::default())
-                .await
-                .unwrap()
-                .body()
+            Body::Some(b"wildcard".to_vec()),
+            extract_body(&tree, b"/hoge", Method::Get).await
+        );
+    }
+
+    #[tokio::test]
+    async fn different_method_to_a_uri() {
+        impl_dummy_handler!(Get, "get");
+        impl_dummy_handler!(Post, "post");
+
+        let mut tree = Router::new();
+        tree.add_route(b"/", Method::Get, Get);
+        tree.add_route(b"/", Method::Post, Post);
+        // Handlers are dispatched dynamically in `Router`, so I have no idea to compare
+        // them. They are distinguished with response body this functions returns.
+        assert_eq!(
+            Body::Some(b"get".to_vec()),
+            extract_body(&tree, b"/", Method::Get).await
+        );
+        assert_eq!(
+            Body::Some(b"post".to_vec()),
+            extract_body(&tree, b"/", Method::Post).await
         );
     }
 }

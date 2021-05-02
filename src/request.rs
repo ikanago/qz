@@ -95,8 +95,8 @@ impl Request {
         RequestBuilder::default()
     }
 
-    pub fn method(&self) -> &Method {
-        &self.method
+    pub fn method(&self) -> Method {
+        self.method
     }
 
     pub fn uri(&self) -> &Uri {
