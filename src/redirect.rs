@@ -1,10 +1,6 @@
 use crate::{
-    handler::Handler,
-    header::HeaderName,
-    request::Request,
-    response::{Responder, Response},
-    status::StatusCode,
-    Uri,
+    handler::Handler, header::HeaderName, request::Request, responder::Responder,
+    response::Response, status::StatusCode, Uri,
 };
 use async_trait::async_trait;
 

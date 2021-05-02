@@ -4,11 +4,8 @@ use std::{
 };
 
 use crate::{
-    handler::Handler,
-    header::HeaderName,
-    mime,
-    request::Request,
-    response::{Responder, Response},
+    handler::Handler, header::HeaderName, mime, request::Request, responder::Responder,
+    response::Response,
 };
 use async_trait::async_trait;
 use tokio::{fs::File, io::AsyncReadExt};

@@ -1,7 +1,4 @@
-use crate::{
-    request::Request,
-    response::{Responder, Response},
-};
+use crate::{request::Request, responder::Responder, response::Response};
 use async_trait::async_trait;
 use std::{fmt, future::Future};
 

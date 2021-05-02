@@ -1,11 +1,6 @@
 use qz::{
-    middleware::BasicAuth,
-    redirect::Redirect,
-    request::Request,
-    response::{Responder, Response},
-    server::ServerBuilder,
-    status::StatusCode,
-    Uri,
+    middleware::BasicAuth, redirect::Redirect, request::Request, responder::Responder,
+    response::Response, server::ServerBuilder, status::StatusCode, Uri,
 };
 use std::io;
 

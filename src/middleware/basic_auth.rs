@@ -1,10 +1,6 @@
 use crate::{
-    header::HeaderName,
-    middleware::Middleware,
-    request::Request,
-    response::{Responder, Response},
-    status::StatusCode,
-    Uri,
+    header::HeaderName, middleware::Middleware, request::Request, responder::Responder,
+    response::Response, status::StatusCode, Uri,
 };
 use async_trait::async_trait;
 use base64;
