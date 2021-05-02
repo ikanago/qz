@@ -8,6 +8,7 @@ use crate::{
 use std::{collections::HashMap, convert::From};
 use tokio::io::{self, AsyncWrite, AsyncWriteExt};
 
+/// Builder of `Response`.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct ResponseBuilder {
     inner: Response,
@@ -27,6 +28,11 @@ impl ResponseBuilder {
 
     pub fn set_header(mut self, name: HeaderName, value: impl Into<HeaderValue>) -> Self {
         self.inner.set_header(name, value.into());
+        self
+    }
+
+    pub fn set_content_length(mut self, length: usize) -> Self {
+        self.inner.set_content_length(length);
         self
     }
 
@@ -95,9 +101,7 @@ impl Response {
 
     pub fn set_body(&mut self, bytes: impl Into<Body>) {
         self.body = bytes.into();
-        if self.body.is_some() {
-            self.set_content_length(self.body.len());
-        }
+        self.set_content_length(self.body.len());
     }
 
     pub async fn send<W>(&self, connection: &mut W) -> io::Result<()>

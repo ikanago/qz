@@ -6,7 +6,7 @@ use std::io;
 
 async fn teapot(_request: Request) -> Response {
     Response::builder()
-        .set_status_code(StatusCode::IMATeapot)
+        .set_status_code(StatusCode::ImaTeapot)
         .set_body(b"<h1>I'm a teapot;)</h1>".to_vec())
         .build()
 }

@@ -42,7 +42,7 @@ define_status_codes!(
     (404, NotFound, "Not Found"),
     (405, MethodNotAllowed, "Method Not Allowed"),
     (411, LengthRequired, "Length Required"),
-    (418, IMATeapot, "I'm a teapot"),
+    (418, ImaTeapot, "I'm a teapot"),
     (500, InternalServerError, "Internal Server Error"),
     (505, HttpVersionNotSupported, "HTTP Version not Supported"),
 );

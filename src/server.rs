@@ -81,15 +81,15 @@ pub struct Server {
 }
 
 impl Server {
-    const INITIAL_BUFFER_SIZE: usize = 1024;
+    const INITIAL_BUFFER_SIZE: usize = 4096;
 
     pub async fn run(&self) -> io::Result<()> {
         println!("Listening on {}", self.listener.local_addr()?);
         loop {
             let (mut stream, _) = match self.listener.accept().await {
                 Ok(stream) => stream,
-                Err(e) => {
-                    eprintln!("{}", e);
+                Err(err) => {
+                    eprintln!("{}", err);
                     break Ok(());
                 }
             };
