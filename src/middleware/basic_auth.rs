@@ -3,7 +3,6 @@ use crate::{
     status::StatusCode, Uri,
 };
 use async_trait::async_trait;
-use base64;
 
 #[derive(Debug)]
 pub struct BasicAuth {

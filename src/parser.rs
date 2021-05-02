@@ -102,6 +102,13 @@ impl<'a> Parser<'a> {
         self.expect(b'\n', StatusCode::BadRequest)?;
         Ok((header_name, header_value))
     }
+
+    pub fn parse_body(&mut self, body_len: usize) -> crate::Result<Vec<u8>> {
+        if body_len > self.state.len() {
+            return Err(StatusCode::LengthRequired);
+        }
+        Ok(self.state[..body_len].to_vec())
+    }
 }
 
 #[cfg(test)]
@@ -167,5 +174,12 @@ mod tests {
         let bytes = b"Accept: */*\r\n";
         let mut p = Parser::new(bytes);
         assert_eq!(Ok((HeaderName::Accept, b"*/*".to_vec())), p.parse_header());
+    }
+
+    #[test]
+    fn parse_body() {
+        let bytes = b"Hello, World!";
+        let mut p = Parser::new(bytes);
+        assert_eq!(Ok(b"Hello, World!".to_vec()), p.parse_body(13));
     }
 }

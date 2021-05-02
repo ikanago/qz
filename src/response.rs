@@ -8,6 +8,7 @@ use crate::{
 use std::{collections::HashMap, convert::From};
 use tokio::io::{self, AsyncWrite, AsyncWriteExt};
 
+/// Builder of `Response`.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct ResponseBuilder {
     inner: Response,
@@ -27,6 +28,11 @@ impl ResponseBuilder {
 
     pub fn set_header(mut self, name: HeaderName, value: impl Into<HeaderValue>) -> Self {
         self.inner.set_header(name, value.into());
+        self
+    }
+
+    pub fn set_content_length(mut self, length: usize) -> Self {
+        self.inner.set_content_length(length);
         self
     }
 
@@ -79,6 +85,11 @@ impl Response {
         self.headers.insert(name, value.into());
     }
 
+    pub fn set_content_length(&mut self, length: usize) {
+        self.headers
+            .insert(HeaderName::ContentLength, length.to_string().into_bytes());
+    }
+
     pub fn set_content_type(&mut self, mime_type: &[u8]) {
         self.headers
             .insert(HeaderName::ContentType, mime_type.to_vec());
@@ -89,7 +100,8 @@ impl Response {
     }
 
     pub fn set_body(&mut self, bytes: impl Into<Body>) {
-        self.body = bytes.into()
+        self.body = bytes.into();
+        self.set_content_length(self.body.len());
     }
 
     pub async fn send<W>(&self, connection: &mut W) -> io::Result<()>
@@ -121,6 +133,12 @@ impl Response {
 impl From<StatusCode> for Response {
     fn from(code: StatusCode) -> Self {
         Response::builder().set_status_code(code).build()
+    }
+}
+
+impl From<Body> for Response {
+    fn from(body: Body) -> Self {
+        Response::builder().set_body(body).build()
     }
 }
 

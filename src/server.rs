@@ -1,11 +1,11 @@
 use crate::{
     handler::Handler,
+    method::Method,
     middleware::{Middleware, MiddlewareChain},
     request::{ParseState, RequestBuffer},
     response::Response,
     router::Router,
     static_files::{StaticDir, StaticFile},
-    status::StatusCode,
 };
 use std::{path::Path, sync::Arc};
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
@@ -34,8 +34,8 @@ impl ServerBuilder {
         self
     }
 
-    pub fn route<F: Handler>(mut self, path: &str, handler: F) -> Self {
-        self.router.add_route(path, handler);
+    pub fn route<F: Handler>(mut self, path: &str, method: Method, handler: F) -> Self {
+        self.router.add_route(path, method, handler);
         self
     }
 
@@ -49,7 +49,11 @@ impl ServerBuilder {
     {
         let mut serve_at_wildcard = serve_at.trim_end_matches('/').to_string();
         serve_at_wildcard.push_str("/*");
-        self.route(&serve_at_wildcard, StaticDir::mount(dir, serve_at))
+        self.route(
+            &serve_at_wildcard,
+            Method::Get,
+            StaticDir::mount(dir, serve_at),
+        )
     }
 
     pub fn serve_file<P>(self, serve_at: &str, path: P) -> io::Result<Self>
@@ -57,7 +61,7 @@ impl ServerBuilder {
         P: AsRef<Path>,
     {
         let file = StaticFile::mount(path)?;
-        Ok(self.route(&serve_at, file))
+        Ok(self.route(&serve_at, Method::Get, file))
     }
 
     pub fn build(self) -> Server {
@@ -77,15 +81,15 @@ pub struct Server {
 }
 
 impl Server {
-    const INITIAL_BUFFER_SIZE: usize = 1024;
+    const INITIAL_BUFFER_SIZE: usize = 4096;
 
     pub async fn run(&self) -> io::Result<()> {
         println!("Listening on {}", self.listener.local_addr()?);
         loop {
             let (mut stream, _) = match self.listener.accept().await {
                 Ok(stream) => stream,
-                Err(e) => {
-                    eprintln!("{}", e);
+                Err(err) => {
+                    eprintln!("{}", err);
                     break Ok(());
                 }
             };
@@ -129,9 +133,9 @@ impl Server {
             Err(response) => return Ok(response),
         };
         println!("{}", request);
-        let handler = match router.find(request.uri()) {
-            Some(handler) => handler,
-            None => return Ok(Response::from(StatusCode::NotFound)),
+        let handler = match router.find(request.uri(), request.method()) {
+            Ok(handler) => handler,
+            Err(code) => return Ok(Response::from(code)),
         };
         let response = handler
             .call(request)
