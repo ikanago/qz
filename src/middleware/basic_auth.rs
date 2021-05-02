@@ -73,8 +73,9 @@ mod tests {
     #[tokio::test]
     async fn simple_basic_auth() {
         let basic_auth = BasicAuth::new("user", "pass", Uri::from("/"));
-        let mut request = Request::default();
-        request.set_header(HeaderName::Authorization, b"Basic dXNlcjpwYXNz".to_vec());
+        let request = Request::builder()
+            .set_header(HeaderName::Authorization, b"Basic dXNlcjpwYXNz".to_vec())
+            .build();
         basic_auth.call(request).await.unwrap();
     }
 
@@ -88,8 +89,9 @@ mod tests {
     #[tokio::test]
     async fn fail_basic_auth() {
         let basic_auth = BasicAuth::new("user", "pass", Uri::from("/"));
-        let mut request = Request::default();
-        request.set_header(HeaderName::Authorization, b"Basic wrong_hash".to_vec());
+        let request = Request::builder()
+            .set_header(HeaderName::Authorization, b"Basic wrong_hash".to_vec())
+            .build();
         let response = match basic_auth.call(request).await {
             Ok(_) => unreachable!("Provided hash must be wrong"),
             Err(response) => response,

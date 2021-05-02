@@ -1,6 +1,6 @@
 use crate::{
-    handler::Handler, header::HeaderName, request::Request, responder::Responder,
-    response::Response, status::StatusCode, Uri,
+    handler::Handler, header::HeaderName, request::Request, response::Response, status::StatusCode,
+    Uri,
 };
 use async_trait::async_trait;
 
@@ -46,8 +46,10 @@ impl Redirect {
 #[async_trait]
 impl Handler for Redirect {
     async fn call(&self, _request: Request) -> crate::Result<Response> {
-        let mut response = self.status_code.respond_to();
-        response.set_header(HeaderName::Location, self.uri.0.clone());
+        let response = Response::builder()
+            .set_status_code(self.status_code)
+            .set_header(HeaderName::Location, self.uri.0.clone())
+            .build();
         Ok(response)
     }
 }

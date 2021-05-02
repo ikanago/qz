@@ -7,6 +7,38 @@ use crate::{
 use std::collections::HashMap;
 use tokio::io::{self, AsyncWrite, AsyncWriteExt};
 
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct ResponseBuilder {
+    inner: Response,
+}
+
+impl ResponseBuilder {
+    pub fn new() -> Self {
+        Self {
+            inner: Response::default(),
+        }
+    }
+
+    pub fn set_status_code(mut self, status_code: StatusCode) -> Self {
+        self.inner.status_code = status_code;
+        self
+    }
+
+    pub fn set_header(mut self, name: HeaderName, value: HeaderValue) -> Self {
+        self.inner.set_header(name, value);
+        self
+    }
+
+    pub fn set_body(mut self, body: Vec<u8>) -> Self {
+        self.inner.set_body(body);
+        self
+    }
+
+    pub fn build(self) -> Response {
+        self.inner
+    }
+}
+
 /// Represents HTTP response.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Response {
@@ -17,6 +49,10 @@ pub struct Response {
 }
 
 impl Response {
+    pub fn builder() -> ResponseBuilder {
+        ResponseBuilder::default()
+    }
+
     pub fn status_code(&self) -> StatusCode {
         self.status_code
     }
