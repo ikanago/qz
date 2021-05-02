@@ -1,4 +1,4 @@
-use std::convert::From;
+use std::{fmt, convert::From};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Body {
@@ -42,5 +42,17 @@ impl From<Vec<u8>> for Body {
 impl From<&[u8]> for Body {
     fn from(bytes: &[u8]) -> Self {
         Self::Some(bytes.into())
+    }
+}
+
+impl fmt::Display for Body {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            Body::Some(bytes) => match std::str::from_utf8(&bytes) {
+                Ok(s) => write!(f, "{}", s),
+                Err(_) => write!(f, "{:?}", bytes),
+            }
+            Body::None => write!(f, ""),
+        }
     }
 }

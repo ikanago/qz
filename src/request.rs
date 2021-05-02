@@ -30,6 +30,10 @@ impl RequestBuilder {
         self
     }
 
+    pub fn get_header(&self, name: HeaderName) -> Option<&HeaderValue> {
+        self.inner.headers.get(&name)
+    }
+
     pub fn set_header(mut self, name: HeaderName, value: impl Into<HeaderValue>) -> Self {
         self.inner.headers.insert(name, value.into());
         self
@@ -38,6 +42,37 @@ impl RequestBuilder {
     pub fn set_body(mut self, body: impl Into<Body>) -> Self {
         self.inner.set_body(body);
         self
+    }
+
+    fn parse_request_line(&mut self, bytes: &[u8]) -> crate::Result<()> {
+        let mut p = Parser::new(bytes);
+        let (method, uri, version) = p.parse_request_line()?;
+        self.inner.method = method;
+        self.inner.uri = uri;
+        self.inner.version = version;
+        Ok(())
+    }
+
+    fn parse_header(&mut self, bytes: &[u8]) -> crate::Result<()> {
+        let mut p = Parser::new(bytes);
+        let (name, value) = p.parse_header()?;
+        self.inner.headers.insert(name, value);
+        Ok(())
+    }
+
+    fn parse_body(&mut self, bytes: &[u8]) -> crate::Result<()> {
+        let body_len = std::str::from_utf8(
+            self.inner
+                .get_header(HeaderName::ContentLength)
+                .ok_or(StatusCode::LengthRequired)?,
+        )
+        .or(Err(StatusCode::LengthRequired))?
+        .parse::<usize>()
+        .or(Err(StatusCode::LengthRequired))?;
+        let mut p = Parser::new(bytes);
+        let body = p.parse_body(body_len)?;
+        self.inner.set_body(body);
+        Ok(())
     }
 
     pub fn build(self) -> Request {
@@ -56,10 +91,6 @@ pub struct Request {
 }
 
 impl Request {
-    fn new() -> Self {
-        Self::default()
-    }
-
     pub fn builder() -> RequestBuilder {
         RequestBuilder::default()
     }
@@ -88,49 +119,22 @@ impl Request {
         self.headers.insert(name, value.into());
     }
 
+    pub fn body(&self) -> &Body {
+        &self.body
+    }
+
     pub fn set_body(&mut self, body: impl Into<Body>) {
         self.body = body.into();
-    }
-
-    fn parse_request_line(&mut self, bytes: &[u8]) -> crate::Result<()> {
-        let mut p = Parser::new(bytes);
-        let (method, uri, version) = p.parse_request_line()?;
-        self.method = method;
-        self.uri = uri;
-        self.version = version;
-        Ok(())
-    }
-
-    fn parse_header(&mut self, bytes: &[u8]) -> crate::Result<()> {
-        let mut p = Parser::new(bytes);
-        let (name, value) = p.parse_header()?;
-        self.headers.insert(name, value);
-        Ok(())
-    }
-
-    fn parse_body(&mut self, bytes: &[u8]) -> crate::Result<()> {
-        let body_len = std::str::from_utf8(
-            self.get_header(HeaderName::ContentLength)
-                .ok_or(StatusCode::LengthRequired)?,
-        )
-        .or(Err(StatusCode::LengthRequired))?
-        .parse::<usize>()
-        .or(Err(StatusCode::LengthRequired))?;
-        let mut p = Parser::new(bytes);
-        dbg!(body_len);
-        dbg!(bytes.len());
-        let body = p.parse_body(body_len)?;
-        self.set_body(body);
-        Ok(())
     }
 }
 
 impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} {}\n", self.method, self.uri, self.version)?;
+        writeln!(f, "{} {} {}", self.method, self.uri, self.version)?;
         for (name, value) in self.headers.iter() {
-            write!(f, "{}: {}\n", name, str::from_utf8(&value).unwrap())?;
+            writeln!(f, "{}: {}", name, str::from_utf8(&value).unwrap())?;
         }
+        writeln!(f, "{}", self.body())?;
         Ok(())
     }
 }
@@ -156,7 +160,7 @@ pub enum ParseState {
 pub struct RequestBuffer {
     buffer: Vec<u8>,
     state: ParseState,
-    request: Request,
+    builder: RequestBuilder,
 }
 
 impl RequestBuffer {
@@ -164,12 +168,12 @@ impl RequestBuffer {
         Self {
             buffer: Vec::new(),
             state: ParseState::RequestLine,
-            request: Request::new(),
+            builder: RequestBuilder::new(),
         }
     }
 
     pub fn complete(self) -> Request {
-        self.request
+        self.builder.build()
     }
 
     /// Extend buffer of this struct with `data` and try to parse given request data.
@@ -190,20 +194,19 @@ impl RequestBuffer {
                     parse_end += dist_to_crlf + 2;
                     match self.state {
                         ParseState::RequestLine => {
-                            self.request
+                            self.builder
                                 .parse_request_line(&self.buffer[parse_start..parse_end])?;
                             self.state = ParseState::Headers;
                         }
                         ParseState::Headers => {
                             if dist_to_crlf == 0 {
                                 // CRLF only
-                                if self.request.get_header(HeaderName::ContentLength).is_none() {
-                                    break;
+                                if self.builder.get_header(HeaderName::ContentLength).is_some() {
+                                    self.builder.parse_body(&self.buffer[(parse_start + 2)..])?;
                                 }
-                                self.request.parse_body(&self.buffer[(parse_start + 2)..])?;
                                 self.state = ParseState::Completed;
                             } else {
-                                self.request
+                                self.builder
                                     .parse_header(&self.buffer[parse_start..parse_end])?;
                             }
                         }
@@ -241,13 +244,10 @@ mod tests {
             }
         }
         assert_eq!(
-            Request {
-                method: Method::Get,
-                uri: Uri::new(b"/~/index.html"),
-                version: Version::OneDotOne,
-                headers: HashMap::new(),
-                body: Body::None,
-            },
+            Request::builder()
+                .set_method(Method::Get)
+                .set_uri(Uri::new(b"/~/index.html"))
+                .build(),
             request_buf.complete()
         );
     }
@@ -267,18 +267,12 @@ mod tests {
             }
         }
         assert_eq!(
-            Request {
-                method: Method::Get,
-                uri: Uri::new(b"/~/index.html"),
-                version: Version::OneDotOne,
-                headers: vec![
-                    (HeaderName::Accept, b"*/*".to_vec()),
-                    (HeaderName::Host, b"localhost:8080".to_vec()),
-                ]
-                .into_iter()
-                .collect(),
-                body: Body::None
-            },
+            Request::builder()
+                .set_method(Method::Get)
+                .set_uri(Uri::new(b"/~/index.html"))
+                .set_header(HeaderName::Accept, b"*/*".to_vec())
+                .set_header(HeaderName::Host, b"localhost:8080".to_vec())
+                .build(),
             request_buf.complete()
         );
     }
@@ -298,19 +292,13 @@ mod tests {
             }
         }
         assert_eq!(
-            Request {
-                method: Method::Get,
-                uri: Uri::new(b"/~/index.html"),
-                version: Version::OneDotOne,
-                headers: vec![
-                    (HeaderName::Accept, b"*/*".to_vec()),
-                    (HeaderName::Host, b"localhost:8080".to_vec()),
-                    (HeaderName::UserAgent, b"curl".to_vec()),
-                ]
-                .into_iter()
-                .collect(),
-                body: Body::None
-            },
+            Request::builder()
+                .set_method(Method::Get)
+                .set_uri(Uri::new(b"/~/index.html"))
+                .set_header(HeaderName::Accept, b"*/*".to_vec())
+                .set_header(HeaderName::Host, b"localhost:8080".to_vec())
+                .set_header(HeaderName::UserAgent, b"curl".to_vec())
+                .build(),
             request_buf.complete()
         );
     }
@@ -330,15 +318,12 @@ mod tests {
             }
         }
         assert_eq!(
-            Request {
-                method: Method::Get,
-                uri: Uri::new(b"/~/index.html"),
-                version: Version::OneDotOne,
-                headers: vec![(HeaderName::ContentLength, b"13".to_vec()),]
-                    .into_iter()
-                    .collect(),
-                body: Body::Some(b"Hello, World!".to_vec()),
-            },
+            Request::builder()
+                .set_method(Method::Get)
+                .set_uri(Uri::new(b"/~/index.html"))
+                .set_header(HeaderName::ContentLength, b"13".to_vec())
+                .set_body(b"Hello, World!".to_vec())
+                .build(),
             request_buf.complete()
         );
     }
