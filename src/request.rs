@@ -130,7 +130,7 @@ impl Request {
 
 impl fmt::Display for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{} {} {}", self.method, self.uri, self.version)?;
+        writeln!(f, "{} {} HTTP/{}", self.method, self.uri, self.version)?;
         for (name, value) in self.headers.iter() {
             writeln!(f, "{}: {}", name, str::from_utf8(&value).unwrap())?;
         }

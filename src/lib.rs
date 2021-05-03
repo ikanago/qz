@@ -62,9 +62,9 @@ pub enum Version {
 }
 
 impl Version {
-    fn as_bytes(&self) -> &'static [u8; 8] {
+    fn as_bytes(&self) -> &'static [u8; 3] {
         match &self {
-            Version::OneDotOne => b"HTTP/1.1",
+            Version::OneDotOne => b"1.1",
         }
     }
 }
