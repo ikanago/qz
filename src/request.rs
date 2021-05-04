@@ -1,3 +1,5 @@
+use serde::de::DeserializeOwned;
+
 use crate::{
     body::Body,
     header::{HeaderName, HeaderValue},
@@ -125,6 +127,10 @@ impl Request {
 
     pub fn set_body(&mut self, body: impl Into<Body>) {
         self.body = body.into();
+    }
+
+    pub fn body_form<T: DeserializeOwned>(&self) -> crate::Result<T> {
+        self.body.into_form()
     }
 }
 

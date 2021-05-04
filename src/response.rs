@@ -61,6 +61,13 @@ pub struct Response {
 }
 
 impl Response {
+    pub fn new(status_code: StatusCode) -> Self {
+        Self {
+            status_code,
+            ..Default::default()
+        }
+    }
+
     pub fn builder() -> ResponseBuilder {
         ResponseBuilder::default()
     }
@@ -130,15 +137,12 @@ impl Response {
     }
 }
 
-impl From<StatusCode> for Response {
-    fn from(code: StatusCode) -> Self {
-        Response::builder().set_status_code(code).build()
-    }
-}
-
-impl From<Body> for Response {
-    fn from(body: Body) -> Self {
-        Response::builder().set_body(body).build()
+impl From<crate::Result<Response>> for Response {
+    fn from(res: crate::Result<Response>) -> Self {
+        match res {
+            Ok(res) => res,
+            Err(code) => code.into(),
+        }
     }
 }
 

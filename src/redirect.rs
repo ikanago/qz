@@ -53,3 +53,18 @@ impl Handler for Redirect {
         Ok(response)
     }
 }
+
+impl From<Redirect> for Response {
+    fn from(redirect: Redirect) -> Self {
+        (&redirect).into()
+    }
+}
+
+impl From<&Redirect> for Response {
+    fn from(redirect: &Redirect) -> Self {
+        Response::builder()
+            .set_status_code(redirect.status_code)
+            .set_header(HeaderName::Location, redirect.uri.as_ref())
+            .build()
+    }
+}

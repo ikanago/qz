@@ -3,7 +3,7 @@ pub mod handler;
 pub mod header;
 pub mod method;
 pub mod middleware;
-mod mime;
+pub mod mime;
 mod parser;
 pub mod redirect;
 pub mod request;

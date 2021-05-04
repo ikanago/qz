@@ -1,4 +1,6 @@
 use std::{convert::From, fmt};
+use crate::{response::Response, status::StatusCode};
+use serde::de::DeserializeOwned;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Body {
@@ -29,6 +31,13 @@ impl Body {
         match &self {
             Body::Some(_) => false,
             Body::None => true,
+        }
+    }
+
+    pub fn into_form<T: DeserializeOwned>(&self) -> crate::Result<T> {
+        match &self {
+            Body::Some(bytes) => serde_urlencoded::from_bytes::<T>(bytes).or(Err(StatusCode::BadRequest)),
+            Body::None => Err(StatusCode::BadRequest),
         }
     }
 }
@@ -69,6 +78,12 @@ impl From<Vec<u8>> for Body {
 impl From<&[u8]> for Body {
     fn from(bytes: &[u8]) -> Self {
         Self::Some(bytes.into())
+    }
+}
+
+impl From<Body> for Response {
+    fn from(body: Body) -> Self {
+        Response::builder().set_body(body).build()
     }
 }
 
