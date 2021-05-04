@@ -1,5 +1,5 @@
-use std::io;
 use crate::response::Response;
+use std::io;
 
 macro_rules! define_status_codes {
     ($(($num:expr, $entry:ident, $phrase:expr),)+) => {

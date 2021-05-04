@@ -1,6 +1,8 @@
-use qz::{method::Method, redirect::Redirect, request::Request, response::Response, server::ServerBuilder};
-use std::io;
+use qz::{
+    method::Method, redirect::Redirect, request::Request, response::Response, server::ServerBuilder,
+};
 use serde::Deserialize;
+use std::io;
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 struct User {

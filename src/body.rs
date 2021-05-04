@@ -1,6 +1,6 @@
-use std::{convert::From, fmt};
 use crate::{response::Response, status::StatusCode};
 use serde::de::DeserializeOwned;
+use std::{convert::From, fmt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Body {
@@ -34,9 +34,28 @@ impl Body {
         }
     }
 
+    /// Parse `Body` as `application/x-www-urlencoded` data.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use qz::body::Body;
+    /// use serde::Deserialize;
+    /// #[derive(Deserialize)]
+    /// struct User {
+    ///     username: String,
+    ///     password: String,
+    /// }
+    ///
+    /// let body = Body::from("username=John&password=qwerty");
+    /// let user: User = body.into_form().unwrap();
+    /// assert_eq!("John", &user.username);
+    /// assert_eq!("qwerty", &user.password);
+    /// ```
     pub fn into_form<T: DeserializeOwned>(&self) -> crate::Result<T> {
         match &self {
-            Body::Some(bytes) => serde_urlencoded::from_bytes::<T>(bytes).or(Err(StatusCode::BadRequest)),
+            Body::Some(bytes) => {
+                serde_urlencoded::from_bytes::<T>(bytes).or(Err(StatusCode::BadRequest))
+            }
             Body::None => Err(StatusCode::BadRequest),
         }
     }
