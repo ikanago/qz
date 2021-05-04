@@ -1,3 +1,4 @@
+use crate::response::Response;
 use std::io;
 
 macro_rules! define_status_codes {
@@ -75,5 +76,11 @@ impl From<io::Error> for StatusCode {
             PermissionDenied => StatusCode::Forbidden,
             _ => StatusCode::InternalServerError,
         }
+    }
+}
+
+impl From<StatusCode> for Response {
+    fn from(code: StatusCode) -> Self {
+        Response::builder().set_status_code(code).build()
     }
 }

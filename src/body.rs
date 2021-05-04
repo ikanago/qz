@@ -1,3 +1,5 @@
+use crate::{response::Response, status::StatusCode};
+use serde::de::DeserializeOwned;
 use std::{convert::From, fmt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -29,6 +31,32 @@ impl Body {
         match &self {
             Body::Some(_) => false,
             Body::None => true,
+        }
+    }
+
+    /// Parse `Body` as `application/x-www-urlencoded` data.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use qz::body::Body;
+    /// use serde::Deserialize;
+    /// #[derive(Deserialize)]
+    /// struct User {
+    ///     username: String,
+    ///     password: String,
+    /// }
+    ///
+    /// let body = Body::from("username=John&password=qwerty");
+    /// let user: User = body.into_form().unwrap();
+    /// assert_eq!("John", &user.username);
+    /// assert_eq!("qwerty", &user.password);
+    /// ```
+    pub fn into_form<T: DeserializeOwned>(&self) -> crate::Result<T> {
+        match &self {
+            Body::Some(bytes) => {
+                serde_urlencoded::from_bytes::<T>(bytes).or(Err(StatusCode::BadRequest))
+            }
+            Body::None => Err(StatusCode::BadRequest),
         }
     }
 }
@@ -69,6 +97,12 @@ impl From<Vec<u8>> for Body {
 impl From<&[u8]> for Body {
     fn from(bytes: &[u8]) -> Self {
         Self::Some(bytes.into())
+    }
+}
+
+impl From<Body> for Response {
+    fn from(body: Body) -> Self {
+        Response::builder().set_body(body).build()
     }
 }
 

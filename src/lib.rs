@@ -1,9 +1,48 @@
+//! qz is a HTTP server library for my learn. All of the specification of HTTP/1.1 is not covered
+//! and not performant enough. The name of qz is comes from "給仕", which means waiter in Japanese.
+//!
+//! # Getting Started
+//!
+//! To build app with this library, first add following to `Cargo.toml`:
+//! ```toml
+//! qz = "0.1"
+//! tokio = { version = "1.5", features = ["macros"] }
+//! serde = { version = "1.0", features = ["derive"] }
+//! ```
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use qz::{method::Method, request::Request, response::Response, server::ServerBuilder};
+//! use std::io;
+//!
+//! async fn hello(_request: Request) -> impl Into<Response> {
+//!     "hello"
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() -> io::Result<()> {
+//!     ServerBuilder::new(8080)
+//!         .await?
+//!         .route("/hello", Method::Get, hello)
+//!         .build()
+//!         .run()
+//!         .await
+//! }
+//! ```
+//!
+//! ```sh
+//! $ curl localhost:8080/hello
+//! Hello
+//! ```
+//!
+
 pub mod body;
 pub mod handler;
 pub mod header;
 pub mod method;
 pub mod middleware;
-mod mime;
+pub mod mime;
 mod parser;
 pub mod redirect;
 pub mod request;

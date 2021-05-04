@@ -5,7 +5,7 @@ use std::io;
 async fn main() -> io::Result<()> {
     ServerBuilder::new(8080)
         .await?
-        .serve_dir("/pages", "./examples/assets")
+        .serve_dir("/", "./target/doc")
         .build()
         .run()
         .await
