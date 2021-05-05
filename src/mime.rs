@@ -16,6 +16,7 @@ define_mime_types!(
     (TEXT_JAVASCRIPT, "text/javascript"),
     (IMAGE_JPG, "image/jpg"),
     (IMAGE_PNG, "image/png"),
+    (APPLICATION_JSON, "application/json"),
     (APPLICATION_WWW_FORM, "application/x-www-form-urlencoded"),
 );
 
@@ -27,6 +28,7 @@ pub fn filename_to_mime<P: AsRef<Path>>(filename: P) -> &'static [u8] {
         Some("js") => TEXT_JAVASCRIPT,
         Some("jpg") => IMAGE_JPG,
         Some("png") => IMAGE_PNG,
+        Some("json") => APPLICATION_JSON,
         _ => b"application/octet-stream",
     }
 }

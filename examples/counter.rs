@@ -1,5 +1,8 @@
 use qz::{method::Method, request::Request, server::ServerBuilder};
-use std::{io, sync::{Arc, atomic::AtomicUsize}};
+use std::{
+    io,
+    sync::{atomic::AtomicUsize, Arc},
+};
 
 #[derive(Clone)]
 struct Counter {
@@ -8,11 +11,15 @@ struct Counter {
 
 impl Counter {
     fn new() -> Self {
-        Self { value: Arc::new(AtomicUsize::new(0)) }
+        Self {
+            value: Arc::new(AtomicUsize::new(0)),
+        }
     }
 
     fn increment(&self) -> usize {
-        self.value.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1
+        self.value
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+            + 1
     }
 }
 

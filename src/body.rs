@@ -1,5 +1,5 @@
 use crate::{response::Response, status::StatusCode};
-use serde::de::DeserializeOwned;
+use serde::{Serialize, de::DeserializeOwned};
 use std::{convert::From, fmt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -56,7 +56,54 @@ impl Body {
             Body::Some(bytes) => {
                 serde_urlencoded::from_bytes::<T>(bytes).or(Err(StatusCode::BadRequest))
             }
-            Body::None => Err(StatusCode::BadRequest),
+            Body::None => Err(StatusCode::InternalServerError),
+        }
+    }
+
+    /// Parse `Body` as `application/json` data.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use qz::body::Body;
+    /// use serde::Serialize;
+    /// #[derive(Serialize)]
+    /// struct User {
+    ///     username: String,
+    ///     password: String,
+    /// }
+    ///
+    /// let user = User { username: "John".to_string(), password: "qwerty".to_string() };
+    /// let body = Body::from_json(&user).unwrap();
+    /// assert_eq!(Body::from(r#"{"username":"John","password":"qwerty"}"#), body);
+    /// ```
+    pub fn from_json(json: &impl Serialize) -> crate::Result<Body> {
+            let bytes = serde_json::to_vec(&json).or(Err(StatusCode::BadRequest))?;
+            Ok(Body::from(bytes))
+    }
+
+    /// Parse `Body` as `application/json` data.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use qz::body::Body;
+    /// use serde::Deserialize;
+    /// #[derive(Deserialize)]
+    /// struct User {
+    ///     username: String,
+    ///     password: String,
+    /// }
+    ///
+    /// let body = Body::from(r#"{"username": "John", "password": "qwerty"}"#);
+    /// let user: User = body.into_json().unwrap();
+    /// assert_eq!("John", &user.username);
+    /// assert_eq!("qwerty", &user.password);
+    /// ```
+    pub fn into_json<T: DeserializeOwned>(&self) -> crate::Result<T> {
+        match &self {
+            Body::Some(bytes) => {
+                serde_json::from_slice::<T>(&bytes).or(Err(StatusCode::BadRequest))
+            }
+            Body::None => Err(StatusCode::InternalServerError),
         }
     }
 }
