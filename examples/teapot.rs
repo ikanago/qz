@@ -3,7 +3,7 @@ use qz::{
 };
 use std::io;
 
-async fn teapot(_request: Request) -> impl Into<Response> {
+async fn teapot(_request: Request, _: ()) -> impl Into<Response> {
     Response::builder()
         .set_status_code(StatusCode::ImaTeapot)
         .set_body("<h1>I'm a Teapot;)</h1>")

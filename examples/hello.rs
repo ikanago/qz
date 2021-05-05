@@ -1,7 +1,7 @@
 use qz::{method::Method, request::Request, response::Response, server::ServerBuilder};
 use std::io;
 
-async fn hello(_request: Request) -> impl Into<Response> {
+async fn hello(_request: Request, _: ()) -> impl Into<Response> {
     "hello"
 }
 

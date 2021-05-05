@@ -10,7 +10,7 @@ struct User {
     password: String,
 }
 
-async fn login(request: Request) -> qz::Result<Response> {
+async fn login(request: Request, _: ()) -> qz::Result<Response> {
     let user: User = request.body_form()?;
     println!("{:?}", user);
     Ok(Redirect::see_other("/userpage").into())

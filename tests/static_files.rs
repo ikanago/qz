@@ -16,7 +16,7 @@ async fn static_file() -> qz::Result<()> {
     let request = buffer.complete();
 
     let handler = StaticFile::mount("./tests/index.html")?;
-    let response = handler.call(request).await?;
+    let response = handler.call(request, ()).await?;
     assert_eq!(StatusCode::Ok, response.status_code());
     assert_eq!(
         Some(&b"13".to_vec()),
@@ -39,7 +39,7 @@ async fn static_dir() -> qz::Result<()> {
     let request = buffer.complete();
 
     let handler = StaticDir::mount("./tests/assets", "/assets");
-    let response = handler.call(request).await?;
+    let response = handler.call(request, ()).await?;
     assert_eq!(StatusCode::Ok, response.status_code());
     assert_eq!(
         Some(&b"13".to_vec()),
@@ -62,6 +62,6 @@ async fn static_dir_not_found() -> qz::Result<()> {
     let request = buffer.complete();
 
     let handler = StaticDir::mount("./tests/assets", "/assets");
-    assert_eq!(Err(StatusCode::NotFound), handler.call(request).await);
+    assert_eq!(Err(StatusCode::NotFound), handler.call(request, ()).await);
     Ok(())
 }

@@ -4,14 +4,14 @@ use qz::{
 };
 use std::io;
 
-async fn teapot(_request: Request) -> Response {
+async fn teapot(_request: Request, _state: ()) -> Response {
     Response::builder()
         .set_status_code(StatusCode::ImaTeapot)
         .set_body(b"<h1>I'm a teapot;)</h1>".to_vec())
         .build()
 }
 
-async fn echo(request: Request) -> Body {
+async fn echo(request: Request, _state: ()) -> Body {
     request.body().clone()
 }
 
@@ -21,7 +21,7 @@ async fn main() -> io::Result<()> {
     ServerBuilder::new(port)
         .await?
         .with(BasicAuth::new("user", "password", "/hello"))
-        .route("/", Method::Get, |_| async { "It works!" })
+        .route("/", Method::Get, |_, _| async { "It works!" })
         // .serve_dir("/", "./html")
         .route("/teapot", Method::Get, teapot)
         .route("/echo", Method::Post, echo)

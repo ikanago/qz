@@ -5,7 +5,7 @@ use std::io;
 async fn main() -> io::Result<()> {
     ServerBuilder::new(8080)
         .await?
-        .route("/hello", Method::Get, |_| async { "Hello" })
+        .route("/hello", Method::Get, |_, _| async { "Hello" })
         .route(
             "/obsolete",
             Method::Get,
