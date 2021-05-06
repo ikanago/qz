@@ -1,5 +1,5 @@
 use crate::{response::Response, status::StatusCode};
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use std::{convert::From, fmt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -77,8 +77,8 @@ impl Body {
     /// assert_eq!(Body::from(r#"{"username":"John","password":"qwerty"}"#), body);
     /// ```
     pub fn from_json(json: &impl Serialize) -> crate::Result<Body> {
-            let bytes = serde_json::to_vec(&json).or(Err(StatusCode::BadRequest))?;
-            Ok(Body::from(bytes))
+        let bytes = serde_json::to_vec(&json).or(Err(StatusCode::BadRequest))?;
+        Ok(Body::from(bytes))
     }
 
     /// Parse `Body` as `application/json` data.

@@ -7,7 +7,7 @@ use std::{
 };
 
 use db::Db;
-use model::{Post, Posts, User};
+use model::{Post, User};
 use qz::{
     body::Body, method::Method, mime, redirect::Redirect, request::Request, response::Response,
     server::ServerBuilder, status::StatusCode,
@@ -52,7 +52,7 @@ async fn main() -> io::Result<()> {
 
     ServerBuilder::with_state(8080, db.clone())
         .await?
-        .serve_file("/register", "./asset/register.html")?
+        .serve_dir("/site", "./asset")
         .route("/register", Method::Post, register)
         .route("/posts", Method::Get, posts)
         .route("/create_post", Method::Post, create_post)
