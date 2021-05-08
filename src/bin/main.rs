@@ -1,6 +1,6 @@
 use qz::{
     body::Body, method::Method, middleware::BasicAuth, redirect::Redirect, request::Request,
-    response::Response, server::ServerBuilder, status::StatusCode,
+    response::Response, server::Server, status::StatusCode,
 };
 use std::io;
 
@@ -18,16 +18,14 @@ async fn echo(request: Request, _state: ()) -> Body {
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let port = 8080;
-    ServerBuilder::new(port)
-        .await?
+    let server = Server::builder()
         .with(BasicAuth::new("user", "password", "/hello"))
         .route("/", Method::Get, |_, _| async { "It works!" })
         // .serve_dir("/", "./html")
         .route("/teapot", Method::Get, teapot)
         .route("/echo", Method::Post, echo)
         .route("/example", Method::Get, Redirect::new("http://example.com"))
-        .build()
-        .run()
-        .await?;
+        .build();
+    Server::run(server, port).await?;
     Ok(())
 }

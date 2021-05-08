@@ -4,6 +4,8 @@ use crate::{
 };
 use async_trait::async_trait;
 
+use super::MiddlewareChain;
+
 #[derive(Debug)]
 pub struct BasicAuth {
     credential_hash: Vec<u8>,
@@ -50,51 +52,70 @@ impl BasicAuth {
 }
 
 #[async_trait]
-impl Middleware for BasicAuth {
-    async fn call(&self, request: Request) -> crate::Result<Request, Response> {
+impl<State> Middleware<State> for BasicAuth
+where
+    State: Clone + Send + Sync + 'static,
+{
+    async fn call(
+        &self,
+        request: Request,
+        state: State,
+        next: MiddlewareChain<'_, State>,
+    ) -> Response
+    where
+        State: Clone + Send + Sync + 'static,
+    {
         let uri = request.uri();
         if self.is_protected_uri(uri) {
             if let Err(code) = self.check_credential(&request) {
                 assert_eq!(StatusCode::Unauthorized, code);
                 let mut response = Response::from(code);
                 response.set_header(HeaderName::WwwAuthenticate, "Basic");
-                return Err(response);
+                return response;
             }
         }
-        Ok(request)
+        next.run(request, state).await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::{method::Method, server::ServerBuilder};
+
     use super::*;
+
+    fn server() -> ServerBuilder<()> {
+        ServerBuilder::new().route("/", Method::Get, |_, _| async { "Hello" })
+    }
 
     #[tokio::test]
     async fn simple_basic_auth() {
-        let basic_auth = BasicAuth::new("user", "pass", "/");
+        let server = server().with(BasicAuth::new("user", "pass", "/")).build();
         let request = Request::builder()
             .set_header(HeaderName::Authorization, "Basic dXNlcjpwYXNz")
             .build();
-        basic_auth.call(request).await.unwrap();
+        let response = server.respond(request).await;
+        assert_eq!(StatusCode::Ok, response.status_code());
     }
 
     #[tokio::test]
     async fn not_protected_by_basic_auth() {
-        let basic_auth = BasicAuth::new("user", "pass", "/example");
+        let server = server()
+            .with(BasicAuth::new("user", "pass", "/example"))
+            .build();
         let request = Request::default();
-        basic_auth.call(request).await.unwrap();
+        let response = server.respond(request).await;
+        assert_eq!(StatusCode::Ok, response.status_code());
     }
 
     #[tokio::test]
     async fn fail_basic_auth() {
-        let basic_auth = BasicAuth::new("user", "pass", "/");
+        let server = server().with(BasicAuth::new("user", "pass", "/")).build();
         let request = Request::builder()
             .set_header(HeaderName::Authorization, "Basic wrong_hash")
             .build();
-        let response = match basic_auth.call(request).await {
-            Ok(_) => unreachable!("Provided hash must be wrong"),
-            Err(response) => response,
-        };
+        let response = server.respond(request).await;
+        assert_eq!(StatusCode::Unauthorized, response.status_code());
         assert_eq!(
             Some(&b"Basic".to_vec()),
             response.get_header(&HeaderName::WwwAuthenticate)

@@ -1,4 +1,4 @@
-use qz::{method::Method, request::Request, server::ServerBuilder};
+use qz::{method::Method, request::Request, server::Server};
 use std::{
     io,
     sync::{atomic::AtomicUsize, Arc},
@@ -30,10 +30,8 @@ async fn increment(_request: Request, state: Counter) -> String {
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    ServerBuilder::with_state(8080, Counter::new())
-        .await?
+    let server = Server::builder_with_state(Counter::new())
         .route("/increment", Method::Post, increment)
-        .build()
-        .run()
-        .await
+        .build();
+    Server::run(server, 8080).await
 }

@@ -1,5 +1,5 @@
 use qz::{
-    method::Method, redirect::Redirect, request::Request, response::Response, server::ServerBuilder,
+    method::Method, redirect::Redirect, request::Request, response::Response, server::Server,
 };
 use serde::Deserialize;
 use std::io;
@@ -18,12 +18,10 @@ async fn login(request: Request, _: ()) -> qz::Result<Response> {
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    ServerBuilder::new(8080)
-        .await?
+    let server = Server::builder()
         .serve_file("/userpage", "./examples/assets/index.html")?
         .serve_file("/login", "./examples/assets/form.html")?
         .route("/login", Method::Post, login)
-        .build()
-        .run()
-        .await
+        .build();
+    Server::run(server, 8080).await
 }
