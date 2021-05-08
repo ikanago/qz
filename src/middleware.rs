@@ -7,8 +7,8 @@ mod basic_auth;
 
 pub use basic_auth::BasicAuth;
 
-/// Middleware preprocesses request before generating response in `Handler`.
-/// Some process need to return not just status code but response object in failure.
+/// Middleware preprocesses request before generating response in `Handler` and postprocesses
+/// response.
 #[async_trait]
 pub trait Middleware<State>: Send + Sync + 'static
 where
@@ -39,8 +39,12 @@ where
     }
 }
 
-/// Holds array of middlewares.
-/// Apply middlewares in the order of registration.
+/// Sequence of Middlewares.
+///
+/// Middlewares' process is recursive:
+/// * Modify `Request` (basically modify headers)
+/// * Run next middleware
+/// * Modify `Response` (basically modify headers)
 pub struct MiddlewareChain<'a, State>
 where
     State: Clone + Send + Sync + 'static,
@@ -90,18 +94,35 @@ mod tests {
 
     #[tokio::test]
     async fn middleware_chain() {
-        struct Dummy;
+        struct DummyA;
         #[async_trait]
-        impl Middleware<()> for Dummy {
+        impl Middleware<()> for DummyA {
             async fn call(
                 &self,
                 mut request: Request,
                 state: (),
                 next: MiddlewareChain<'_, ()>,
             ) -> Response {
+                // These headers here has no meaning.
                 request.set_header(HeaderName::Accept, "*/*");
                 let mut response = next.run(request, state).await;
                 response.set_header(HeaderName::Unknown, "hello");
+                response
+            }
+        }
+
+        struct DummyB;
+        #[async_trait]
+        impl Middleware<()> for DummyB {
+            async fn call(
+                &self,
+                mut request: Request,
+                state: (),
+                next: MiddlewareChain<'_, ()>,
+            ) -> Response {
+                request.set_header(HeaderName::Host, "localhost");
+                let mut response = next.run(request, state).await;
+                response.set_header(HeaderName::Location, "example.com");
                 response
             }
         }
@@ -119,13 +140,18 @@ mod tests {
                     Some(&HeaderValue::from("*/*")),
                     request.get_header(HeaderName::Accept)
                 );
+                assert_eq!(
+                    Some(&HeaderValue::from("localhost")),
+                    request.get_header(HeaderName::Host)
+                );
                 next.run(request, state).await
             }
         }
 
         let server = ServerBuilder::new()
             .route("/", Method::Get, Box::new(|_, _| async { "hello" }))
-            .with(Dummy)
+            .with(DummyA)
+            .with(DummyB)
             .with(Test)
             .build();
         let request = Request::default();
@@ -133,6 +159,10 @@ mod tests {
         assert_eq!(
             Some(&HeaderValue::from("hello")),
             response.get_header(&HeaderName::Unknown)
+        );
+        assert_eq!(
+            Some(&HeaderValue::from("example.com")),
+            response.get_header(&HeaderName::Location)
         );
     }
 }

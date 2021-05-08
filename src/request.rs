@@ -27,8 +27,8 @@ impl RequestBuilder {
         self
     }
 
-    pub fn set_uri(mut self, uri: Uri) -> Self {
-        self.inner.uri = uri;
+    pub fn set_uri(mut self, uri: impl Into<Uri>) -> Self {
+        self.inner.uri = uri.into();
         self
     }
 

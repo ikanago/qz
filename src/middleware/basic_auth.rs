@@ -103,7 +103,7 @@ mod tests {
         let server = server()
             .with(BasicAuth::new("user", "pass", "/example"))
             .build();
-        let request = Request::default();
+        let request = Request::builder().set_uri("/").build();
         let response = server.respond(request).await;
         assert_eq!(StatusCode::Ok, response.status_code());
     }

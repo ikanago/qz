@@ -12,7 +12,7 @@ use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
 /// Builder of `Server`.
-/// The reason of this struct is to make `Server.router` immutable.
+/// The purpose of this struct is to make `Server.router` immutable.
 pub struct ServerBuilder<State>
 where
     State: Clone + Send + Sync + 'static,
@@ -24,11 +24,7 @@ where
 
 impl ServerBuilder<()> {
     pub fn new() -> Self {
-        Self {
-            middlewares: Vec::new(),
-            router: Router::new(),
-            state: (),
-        }
+        Self::with_state(())
     }
 }
 

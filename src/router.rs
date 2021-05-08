@@ -125,11 +125,8 @@ where
                 }
             }
             // If there is no child in `self.children` that matches new path, just insert it.
-            self.children.push(Router::new_child(
-                new_path_remaining,
-                method,
-                handler,
-            ));
+            self.children
+                .push(Router::new_child(new_path_remaining, method, handler));
         }
     }
 
