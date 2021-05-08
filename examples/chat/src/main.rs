@@ -52,7 +52,7 @@ async fn main() -> io::Result<()> {
 
     ServerBuilder::with_state(8080, db.clone())
         .await?
-        .serve_dir("/site", "./asset")
+        .serve_dir("/site", "./frontend/build")
         .route("/register", Method::Post, register)
         .route("/posts", Method::Get, posts)
         .route("/create_post", Method::Post, create_post)

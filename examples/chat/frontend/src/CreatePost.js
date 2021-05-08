@@ -22,17 +22,16 @@ const CreatePost = () => {
     const makeRequest = () => {
         const xhr = new XMLHttpRequest();
         xhr.responseType = "json";
-        xhr.open("POST", apiBaseUrl + "/create_post");
-        xhr.send(JSON.stringify({
-            username: name,
-            text: text,
-        }));
-
         xhr.onload = _e => {
             if (xhr.status === 200) {
                 clearInput();
             }
         };
+        xhr.open("POST", apiBaseUrl + "/create_post");
+        xhr.send(JSON.stringify({
+            username: name,
+            text: text,
+        }));
     }
 
     return (
