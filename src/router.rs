@@ -11,7 +11,7 @@ where
 {
     path: Vec<u8>,
     handlers: HashMap<Method, Box<dyn Handler<State>>>,
-    children: Vec<Box<Router<State>>>,
+    children: Vec<Router<State>>,
 }
 
 /// Check if the path has wild card at the end of the path.
@@ -74,7 +74,7 @@ where
         // For the first time to insert node to root.
         if self.path.is_empty() && self.children.is_empty() {
             self.children
-                .push(Box::new(Router::new_child(new_path, method, handler)));
+                .push(Router::new_child(new_path, method, handler));
             return;
         }
         if self.path == new_path {
@@ -99,15 +99,15 @@ where
             if !new_path_remaining.is_empty() {
                 // e.g. "abc" and "ade".
                 self.children = vec![
-                    Box::new(deriving_child),
-                    Box::new(Router::new_child(new_path_remaining, method, handler)),
+                    deriving_child,
+                    Router::new_child(new_path_remaining, method, handler),
                 ];
             } else {
                 // e.g. "abc" and "a".
                 // If "a" is inserted in the same way as previous `if` block, a handler for the node "a"
                 // is replaced with `None` but the node has a `handler`.
                 self.handlers.insert(method, Box::new(handler));
-                self.children = vec![Box::new(deriving_child)];
+                self.children = vec![deriving_child];
             }
         } else {
             // When longest common prefix of `new_path` is exactly the same as `self.path`.
@@ -125,11 +125,8 @@ where
                 }
             }
             // If there is no child in `self.children` that matches new path, just insert it.
-            self.children.push(Box::new(Router::new_child(
-                new_path_remaining,
-                method,
-                handler,
-            )));
+            self.children
+                .push(Router::new_child(new_path_remaining, method, handler));
         }
     }
 
@@ -140,11 +137,11 @@ where
         self.path = path.to_vec();
         let mut handlers: HashMap<Method, Box<dyn Handler<State> + 'static>> = HashMap::new();
         handlers.insert(method, Box::new(handler));
-        self.children.push(Box::new(Self {
+        self.children.push(Self {
             path: b"*".to_vec(),
             handlers,
             children: Vec::new(),
-        }));
+        });
     }
 
     pub fn find<B: AsRef<[u8]>>(

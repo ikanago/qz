@@ -13,7 +13,7 @@
 //! # Examples
 //!
 //! ```no_run
-//! use qz::{method::Method, request::Request, response::Response, server::ServerBuilder};
+//! use qz::{method::Method, request::Request, response::Response, server::Server};
 //! use std::io;
 //!
 //! async fn hello(_request: Request, _: ()) -> impl Into<Response> {
@@ -22,12 +22,10 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> io::Result<()> {
-//!     ServerBuilder::new(8080)
-//!         .await?
+//!     let server = Server::builder()
 //!         .route("/hello", Method::Get, hello)
-//!         .build()
-//!         .run()
-//!         .await
+//!         .build();
+//!     Server::run(server, 8080).await
 //! }
 //! ```
 //!

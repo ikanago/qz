@@ -1,10 +1,9 @@
-use qz::{method::Method, redirect::Redirect, server::ServerBuilder};
+use qz::{method::Method, redirect::Redirect, server::Server};
 use std::io;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    ServerBuilder::new(8080)
-        .await?
+    let server = Server::builder()
         .route("/hello", Method::Get, |_, _| async { "Hello" })
         .route(
             "/obsolete",
@@ -13,7 +12,6 @@ async fn main() -> io::Result<()> {
         )
         .route("/maintainance", Method::Get, Redirect::found("/hello"))
         .route("/login", Method::Post, Redirect::see_other("/hello"))
-        .build()
-        .run()
-        .await
+        .build();
+    Server::run(server, 8080).await
 }

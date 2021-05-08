@@ -1,12 +1,8 @@
-use qz::server::ServerBuilder;
+use qz::server::Server;
 use std::io;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    ServerBuilder::new(8080)
-        .await?
-        .serve_dir("/", "./target/doc")
-        .build()
-        .run()
-        .await
+    let server = Server::builder().serve_dir("/", "./target/doc").build();
+    Server::run(server, 8080).await
 }

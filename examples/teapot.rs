@@ -1,5 +1,5 @@
 use qz::{
-    method::Method, request::Request, response::Response, server::ServerBuilder, status::StatusCode,
+    method::Method, request::Request, response::Response, server::Server, status::StatusCode,
 };
 use std::io;
 
@@ -12,10 +12,6 @@ async fn teapot(_request: Request, _: ()) -> impl Into<Response> {
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    ServerBuilder::new(8080)
-        .await?
-        .route("/", Method::Get, teapot)
-        .build()
-        .run()
-        .await
+    let server = Server::builder().route("/", Method::Get, teapot).build();
+    Server::run(server, 8080).await
 }
