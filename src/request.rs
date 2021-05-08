@@ -132,6 +132,10 @@ impl Request {
     pub fn body_form<T: DeserializeOwned>(&self) -> crate::Result<T> {
         self.body.into_form()
     }
+
+    pub fn body_json<T: DeserializeOwned>(&self) -> crate::Result<T> {
+        self.body.into_json()
+    }
 }
 
 impl fmt::Display for Request {

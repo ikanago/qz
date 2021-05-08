@@ -3,24 +3,33 @@ use async_trait::async_trait;
 use std::{fmt, future::Future};
 
 /// Abstruction over all process to create response from request.
+///
+/// `State` is something to use in handler process such as database connection, counter and so on.
 #[async_trait]
-pub trait Handler: Send + Sync + 'static {
-    async fn call(&self, request: Request) -> crate::Result<Response>;
+pub trait Handler<State>: Send + Sync + 'static
+where
+    State: Clone + Send + Sync + 'static,
+{
+    async fn call(&self, request: Request, state: State) -> crate::Result<Response>;
 }
 
 #[async_trait]
-impl<F, Fut> Handler for F
+impl<State, F, Fut> Handler<State> for F
 where
-    F: Send + Sync + 'static + Fn(Request) -> Fut,
+    State: Clone + Send + Sync + 'static,
+    F: Send + Sync + 'static + Fn(Request, State) -> Fut,
     Fut: Future + Send + 'static,
     Fut::Output: Into<Response>,
 {
-    async fn call(&self, request: Request) -> crate::Result<Response> {
-        Ok(self(request).await.into())
+    async fn call(&self, request: Request, state: State) -> crate::Result<Response> {
+        Ok(self(request, state).await.into())
     }
 }
 
-impl fmt::Debug for dyn Handler {
+impl<State> fmt::Debug for dyn Handler<State>
+where
+    State: Clone + Send + Sync + 'static,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Handler")
     }

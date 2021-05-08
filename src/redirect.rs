@@ -44,8 +44,11 @@ impl Redirect {
 }
 
 #[async_trait]
-impl Handler for Redirect {
-    async fn call(&self, _request: Request) -> crate::Result<Response> {
+impl<State> Handler<State> for Redirect
+where
+    State: Clone + Send + Sync + 'static,
+{
+    async fn call(&self, _request: Request, _state: State) -> crate::Result<Response> {
         let response = Response::builder()
             .set_status_code(self.status_code)
             .set_header(HeaderName::Location, self.uri.0.clone())

@@ -6,7 +6,7 @@ async fn main() -> io::Result<()> {
     ServerBuilder::new(8080)
         .await?
         .with(BasicAuth::new("user", "password", "/"))
-        .route("/", Method::Get, |_| async { "Hello" })
+        .route("/", Method::Get, |_, _| async { "Hello" })
         .build()
         .run()
         .await

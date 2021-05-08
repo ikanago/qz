@@ -13,19 +13,39 @@ use tokio::net::{TcpListener, TcpStream};
 
 /// Builder of `Server`.
 /// The reason of this struct is to make `Server.router` immutable.
-pub struct ServerBuilder {
+pub struct ServerBuilder<State>
+where
+    State: Clone + Send + Sync + 'static,
+{
     listener: TcpListener,
     middlewares: MiddlewareChain,
-    router: Router,
+    router: Router<State>,
+    state: State,
 }
 
-impl ServerBuilder {
+impl ServerBuilder<()> {
     pub async fn new(port: u16) -> io::Result<Self> {
         let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
         Ok(Self {
             listener,
             middlewares: MiddlewareChain::new(),
             router: Router::new(),
+            state: (),
+        })
+    }
+}
+
+impl<State> ServerBuilder<State>
+where
+    State: Clone + Send + Sync + 'static,
+{
+    pub async fn with_state(port: u16, state: State) -> io::Result<Self> {
+        let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
+        Ok(Self {
+            listener,
+            middlewares: MiddlewareChain::new(),
+            router: Router::new(),
+            state,
         })
     }
 
@@ -34,7 +54,7 @@ impl ServerBuilder {
         self
     }
 
-    pub fn route<F: Handler>(mut self, path: &str, method: Method, handler: F) -> Self {
+    pub fn route<F: Handler<State>>(mut self, path: &str, method: Method, handler: F) -> Self {
         self.router.add_route(path, method, handler);
         self
     }
@@ -64,23 +84,31 @@ impl ServerBuilder {
         Ok(self.route(&serve_at, Method::Get, file))
     }
 
-    pub fn build(self) -> Server {
+    pub fn build(self) -> Server<State> {
         Server {
             listener: self.listener,
             middlewares: Arc::new(self.middlewares),
             router: Arc::new(self.router),
+            state: self.state,
         }
     }
 }
 
-pub struct Server {
+pub struct Server<State>
+where
+    State: Clone + Send + Sync + 'static,
+{
     listener: TcpListener,
     // Wrap with `Arc` to pass over tokio task without moving `self`.
     middlewares: Arc<MiddlewareChain>,
-    router: Arc<Router>,
+    router: Arc<Router<State>>,
+    state: State,
 }
 
-impl Server {
+impl<State> Server<State>
+where
+    State: Clone + Send + Sync + 'static,
+{
     const INITIAL_BUFFER_SIZE: usize = 4096;
 
     pub async fn run(&self) -> io::Result<()> {
@@ -95,8 +123,9 @@ impl Server {
             };
             let middlewares = Arc::clone(&self.middlewares);
             let router = Arc::clone(&self.router);
+            let state = self.state.clone();
             tokio::spawn(async move {
-                if let Ok(response) = Self::process(&mut stream, middlewares, router).await {
+                if let Ok(response) = Self::process(&mut stream, middlewares, router, state).await {
                     if let Err(err) = response.send(&mut stream).await {
                         eprintln!("{}", err);
                     }
@@ -109,7 +138,8 @@ impl Server {
     async fn process(
         stream: &mut TcpStream,
         middlewares: Arc<MiddlewareChain>,
-        router: Arc<Router>,
+        router: Arc<Router<State>>,
+        state: State,
     ) -> Result<Response, ()> {
         let mut request_buf = RequestBuffer::new();
         let mut buf = vec![0; Self::INITIAL_BUFFER_SIZE];
@@ -138,7 +168,7 @@ impl Server {
             Err(code) => return Ok(Response::from(code)),
         };
         let response = handler
-            .call(request)
+            .call(request, state)
             .await
             .unwrap_or_else(|code| Response::from(code));
         Ok(response)

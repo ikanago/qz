@@ -19,8 +19,11 @@ impl StaticFile {
 }
 
 #[async_trait]
-impl Handler for StaticFile {
-    async fn call(&self, _request: Request) -> crate::Result<Response> {
+impl<State> Handler<State> for StaticFile
+where
+    State: Clone + Send + Sync + 'static,
+{
+    async fn call(&self, _request: Request, _state: State) -> crate::Result<Response> {
         let filename = self.path.clone();
         let mime_type = mime::filename_to_mime(&filename);
         // This should return internal server error.

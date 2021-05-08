@@ -26,8 +26,11 @@ impl StaticDir {
 }
 
 #[async_trait]
-impl Handler for StaticDir {
-    async fn call(&self, request: Request) -> crate::Result<Response> {
+impl<State> Handler<State> for StaticDir
+where
+    State: Clone + Send + Sync + 'static,
+{
+    async fn call(&self, request: Request, _state: State) -> crate::Result<Response> {
         let found_file = find_file(
             request.uri(),
             self.mount_dir.as_path(),

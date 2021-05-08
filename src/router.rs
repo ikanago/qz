@@ -5,10 +5,13 @@ use std::collections::HashMap;
 /// URI paths are represented as trie tree.
 /// This struct is a node of the tree.
 #[derive(Debug)]
-pub struct Router {
+pub struct Router<State>
+where
+    State: Clone + Send + Sync + 'static,
+{
     path: Vec<u8>,
-    handlers: HashMap<Method, Box<dyn Handler>>,
-    children: Vec<Box<Router>>,
+    handlers: HashMap<Method, Box<dyn Handler<State>>>,
+    children: Vec<Box<Router<State>>>,
 }
 
 /// Check if the path has wild card at the end of the path.
@@ -16,7 +19,10 @@ fn includes_wildcard(path: &[u8]) -> bool {
     path.ends_with(b"/*")
 }
 
-impl Router {
+impl<State> Router<State>
+where
+    State: Clone + Send + Sync + 'static,
+{
     pub fn new() -> Self {
         Self {
             path: Vec::new(),
@@ -25,7 +31,7 @@ impl Router {
         }
     }
 
-    fn new_child<F: Handler>(path: &[u8], method: Method, handler: F) -> Self {
+    fn new_child<F: Handler<State>>(path: &[u8], method: Method, handler: F) -> Self {
         if includes_wildcard(path) && !path.starts_with(b"*") {
             let mut child = Self {
                 path: path.to_vec(),
@@ -35,7 +41,7 @@ impl Router {
             child.split_wildcard(method, handler);
             child
         } else {
-            let mut handlers: HashMap<Method, Box<dyn Handler + 'static>> = HashMap::new();
+            let mut handlers: HashMap<Method, Box<dyn Handler<State> + 'static>> = HashMap::new();
             handlers.insert(method, Box::new(handler));
             Self {
                 path: path.to_vec(),
@@ -58,7 +64,7 @@ impl Router {
         pos
     }
 
-    pub fn add_route<B: AsRef<[u8]>, F: Handler>(
+    pub fn add_route<B: AsRef<[u8]>, F: Handler<State>>(
         &mut self,
         new_path: B,
         method: Method,
@@ -127,12 +133,12 @@ impl Router {
         }
     }
 
-    fn split_wildcard<F: Handler>(&mut self, method: Method, handler: F) {
+    fn split_wildcard<F: Handler<State>>(&mut self, method: Method, handler: F) {
         assert!(includes_wildcard(&self.path));
         assert!(self.path.len() >= 2);
         let (_, path) = self.path.split_last().unwrap();
         self.path = path.to_vec();
-        let mut handlers: HashMap<Method, Box<dyn Handler + 'static>> = HashMap::new();
+        let mut handlers: HashMap<Method, Box<dyn Handler<State> + 'static>> = HashMap::new();
         handlers.insert(method, Box::new(handler));
         self.children.push(Box::new(Self {
             path: b"*".to_vec(),
@@ -141,7 +147,11 @@ impl Router {
         }));
     }
 
-    pub fn find<B: AsRef<[u8]>>(&self, key: B, method: Method) -> crate::Result<&Box<dyn Handler>> {
+    pub fn find<B: AsRef<[u8]>>(
+        &self,
+        key: B,
+        method: Method,
+    ) -> crate::Result<&Box<dyn Handler<State>>> {
         let key = key.as_ref();
         if key.is_empty() {
             return Err(StatusCode::NotFound);
@@ -187,7 +197,7 @@ mod tests {
 
     #[test]
     fn lcp() {
-        let node_x = Router {
+        let node_x = Router::<()> {
             path: b"abcde".to_vec(),
             handlers: HashMap::new(),
             children: Vec::new(),
@@ -197,7 +207,7 @@ mod tests {
 
     #[test]
     fn lcp_root() {
-        let node_x = Router {
+        let node_x = Router::<()> {
             path: b"".to_vec(),
             handlers: HashMap::new(),
             children: Vec::new(),
@@ -211,8 +221,8 @@ mod tests {
             struct $id;
 
             #[async_trait]
-            impl Handler for $id {
-                async fn call(&self, _request: Request) -> crate::Result<Response> {
+            impl Handler<()> for $id {
+                async fn call(&self, _request: Request, _state: ()) -> crate::Result<Response> {
                     let mut response = Response::default();
                     response.set_body($body.as_bytes().to_vec());
                     Ok(response)
@@ -296,10 +306,10 @@ mod tests {
         assert!(tree.find(b"/ho", Method::Get).is_err())
     }
 
-    async fn extract_body(tree: &Router, key: &[u8], method: Method) -> Body {
+    async fn extract_body(tree: &Router<()>, key: &[u8], method: Method) -> Body {
         tree.find(key, method)
             .unwrap()
-            .call(Request::default())
+            .call(Request::default(), ())
             .await
             .unwrap()
             .body()
