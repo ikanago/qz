@@ -51,6 +51,20 @@ where
         }
     }
 
+    fn split_wildcard<F: Handler<State>>(&mut self, method: Method, handler: F) {
+        assert!(includes_wildcard(&self.path));
+        assert!(self.path.len() >= 2);
+        let (_, path) = self.path.split_last().unwrap();
+        self.path = path.to_vec();
+        let mut handlers: HashMap<Method, Box<dyn Handler<State> + 'static>> = HashMap::new();
+        handlers.insert(method, Box::new(handler));
+        self.children.push(Self {
+            path: b"*".to_vec(),
+            handlers,
+            children: Vec::new(),
+        });
+    }
+
     /// Return how many common character path of `Route` nodes and an arugument have.
     fn longest_common_prefix(&self, other: &[u8]) -> usize {
         let mut pos = 0;
@@ -130,20 +144,6 @@ where
         }
     }
 
-    fn split_wildcard<F: Handler<State>>(&mut self, method: Method, handler: F) {
-        assert!(includes_wildcard(&self.path));
-        assert!(self.path.len() >= 2);
-        let (_, path) = self.path.split_last().unwrap();
-        self.path = path.to_vec();
-        let mut handlers: HashMap<Method, Box<dyn Handler<State> + 'static>> = HashMap::new();
-        handlers.insert(method, Box::new(handler));
-        self.children.push(Self {
-            path: b"*".to_vec(),
-            handlers,
-            children: Vec::new(),
-        });
-    }
-
     pub fn find<B: AsRef<[u8]>>(
         &self,
         key: B,
@@ -160,7 +160,13 @@ where
         if key == self.path {
             match self.handlers.get(&method) {
                 Some(handler) => return Ok(&handler),
-                None => return Err(StatusCode::MethodNotAllowed),
+                None => {
+                    if self.children.is_empty() {
+                        return Err(StatusCode::MethodNotAllowed);
+                    }
+                    // Try further e.g. `self.path` is "hoge", key is "hoge" and this node has
+                    // wildcard child.
+                }
             }
         }
 
@@ -173,13 +179,10 @@ where
                     None => return Err(StatusCode::MethodNotAllowed),
                 }
             }
-            match (*child).path.get(0) {
-                // Because more than 2 children node do not have the same prefix,
-                // just check first character of key for each child.
-                Some(first_char) if first_char == key_remaining.iter().next().unwrap() => {
+            if let (Some(c), Some(d)) = (child.path.get(0), key_remaining.iter().next()) {
+                if c == d {
                     return child.find(key_remaining, method);
                 }
-                _ => continue,
             }
         }
         Err(StatusCode::NotFound)
@@ -301,6 +304,22 @@ mod tests {
         let mut tree = Router::new();
         tree.add_route(b"/hoge", Method::Get, Dummy);
         assert!(tree.find(b"/ho", Method::Get).is_err())
+    }
+
+    #[test]
+    fn dont_match_substr2() {
+        let mut tree = Router::new();
+        tree.add_route(b"/hoge", Method::Get, Dummy);
+        tree.add_route(b"/ho", Method::Post, Dummy);
+        assert!(tree.find(b"/ho", Method::Get).is_err())
+    }
+
+    #[test]
+    fn match_child_wildcard_defferent_method() {
+        let mut tree = Router::new();
+        tree.add_route(b"/hoge", Method::Get, Dummy);
+        tree.add_route(b"/hoge*", Method::Post, Dummy);
+        assert!(tree.find(b"/hoge", Method::Post).is_ok())
     }
 
     async fn extract_body(tree: &Router<()>, key: &[u8], method: Method) -> Body {
