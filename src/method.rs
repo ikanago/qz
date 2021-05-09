@@ -5,6 +5,7 @@ use std::{convert::TryFrom, fmt};
 pub enum Method {
     Get,
     Post,
+    Options,
 }
 
 impl Default for Method {
@@ -18,6 +19,7 @@ impl fmt::Display for Method {
         match self {
             Method::Get => write!(f, "GET"),
             Method::Post => write!(f, "POST"),
+            Method::Options => write!(f, "OPTIONS"),
         }
     }
 }
@@ -28,6 +30,7 @@ impl TryFrom<&[u8]> for Method {
         match std::str::from_utf8(value) {
             Ok("GET") => Ok(Method::Get),
             Ok("POST") => Ok(Method::Post),
+            Ok("OPTONS") => Ok(Method::Options),
             _ => Err(StatusCode::MethodNotAllowed),
         }
     }

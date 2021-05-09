@@ -36,9 +36,24 @@ macro_rules! define_headers {
 define_headers!(
     (Accept, b"Accept", b"accept"),
     (
+        AccessControlAllowHeaders,
+        b"Access-Control-Allow-Headers",
+        b"access-control-allow-headers"
+    ),
+    (
+        AccessControlAllowMethods,
+        b"Access-Control-Allow-Methods",
+        b"access-control-allow-methods"
+    ),
+    (
         AccessControlAllowOrigin,
         b"Access-Control-Allow-Origin",
         b"access-control-allow-origin"
+    ),
+    (
+        AccessControlAllowMaxAge,
+        b"Access-Control-Max-Age",
+        b"access-control-max-age"
     ),
     (Authorization, b"Authorization", b"authorization"),
     (ContentLength, b"Content-Length", b"content-length"),

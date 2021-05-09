@@ -1,5 +1,6 @@
 use crate::{
     header::{HeaderName, HeaderValue},
+    method::Method,
     middleware::{Middleware, MiddlewareChain},
     request::Request,
     response::Response,
@@ -12,12 +13,22 @@ use std::convert::From;
 #[derive(Debug)]
 pub struct Cors {
     allow_origin: Origin,
+    allow_methods: HeaderValue,
+    allow_headers: HeaderValue,
+    max_age: HeaderValue,
 }
+
+const DEFAULT_ALLOW_METHODS: &[u8] = b"POST, GET, OPTIONS";
+const DEFAULT_ALLOW_HEADERS: &[u8] = b"*";
+const DEFAULT_MAX_AGE: &[u8] = b"86400";
 
 impl Cors {
     pub fn new() -> Self {
         Self {
             allow_origin: Origin::Any,
+            allow_methods: DEFAULT_ALLOW_METHODS.into(),
+            allow_headers: DEFAULT_ALLOW_HEADERS.into(),
+            max_age: DEFAULT_MAX_AGE.into(),
         }
     }
 
@@ -26,11 +37,44 @@ impl Cors {
         self
     }
 
+    pub fn allow_methods(mut self, methods: impl Into<HeaderValue>) -> Self {
+        self.allow_methods = methods.into();
+        self
+    }
+
+    pub fn allow_headers(mut self, headers: impl Into<HeaderValue>) -> Self {
+        self.allow_headers = headers.into();
+        self
+    }
+
+    pub fn max_age(mut self, max_age: impl Into<HeaderValue>) -> Self {
+        self.max_age = max_age.into();
+        self
+    }
+
     fn is_valid_origin(&self, origin: &HeaderValue) -> bool {
         match &self.allow_origin {
             Origin::Any => true,
             Origin::Single(v) => v == origin,
         }
+    }
+
+    fn handle_preflight(&self) -> Response {
+        let mut response = Response::new(StatusCode::Ok);
+        response.set_header(
+            HeaderName::AccessControlAllowOrigin,
+            self.allow_origin.as_ref(),
+        );
+        response.set_header(
+            HeaderName::AccessControlAllowMethods,
+            self.allow_methods.clone(),
+        );
+        response.set_header(
+            HeaderName::AccessControlAllowHeaders,
+            self.allow_headers.clone(),
+        );
+        response.set_header(HeaderName::AccessControlAllowMaxAge, self.max_age.clone());
+        response
     }
 }
 
@@ -51,6 +95,10 @@ where
         };
         if !self.is_valid_origin(origin) {
             return Response::new(StatusCode::Unauthorized);
+        }
+
+        if request.method() == Method::Options {
+            return self.handle_preflight();
         }
 
         let mut response = next.run(request, state).await;
@@ -118,7 +166,7 @@ impl AsRef<[u8]> for Origin {
 
 #[cfg(test)]
 mod tests {
-    use crate::{method::Method, server::ServerBuilder};
+    use crate::server::ServerBuilder;
 
     use super::*;
 
@@ -175,5 +223,50 @@ mod tests {
         let request = Request::default();
         let response = server.respond(request).await;
         assert_eq!(StatusCode::Ok, response.status_code());
+    }
+
+    #[tokio::test]
+    async fn handle_preflight_request() {
+        let server = server()
+            .route("/", Method::Options, |_, _| async {
+                StatusCode::BadRequest
+            })
+            .with(Cors::new().allow_origin(ALLOW_ORIGIN))
+            .build();
+        let request = Request::builder()
+            .set_method(Method::Options)
+            .set_header(HeaderName::Origin, ALLOW_ORIGIN)
+            .build();
+        let response = server.respond(request).await;
+        assert_eq!(StatusCode::Ok, response.status_code());
+        assert_eq!(
+            Origin::Single(ALLOW_ORIGIN.to_vec()),
+            response
+                .get_header(&HeaderName::AccessControlAllowOrigin)
+                .unwrap()
+                .clone()
+                .into()
+        );
+        assert_eq!(
+            HeaderValue::from(DEFAULT_ALLOW_METHODS),
+            response
+                .get_header(&HeaderName::AccessControlAllowMethods)
+                .unwrap()
+                .clone()
+        );
+        assert_eq!(
+            HeaderValue::from(DEFAULT_ALLOW_HEADERS),
+            response
+                .get_header(&HeaderName::AccessControlAllowHeaders)
+                .unwrap()
+                .clone()
+        );
+        assert_eq!(
+            HeaderValue::from(DEFAULT_MAX_AGE),
+            response
+                .get_header(&HeaderName::AccessControlAllowMaxAge)
+                .unwrap()
+                .clone()
+        );
     }
 }

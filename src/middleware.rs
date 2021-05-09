@@ -7,6 +7,7 @@ mod basic_auth;
 mod cors;
 
 pub use basic_auth::BasicAuth;
+pub use cors::Cors;
 
 /// Middleware preprocesses request before generating response in `Handler` and postprocesses
 /// response.
