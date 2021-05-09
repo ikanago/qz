@@ -4,8 +4,10 @@ use crate::{handler::Handler, request::Request, response::Response};
 use std::{future::Future, sync::Arc};
 
 mod basic_auth;
+mod cors;
 
 pub use basic_auth::BasicAuth;
+pub use cors::Cors;
 
 /// Middleware preprocesses request before generating response in `Handler` and postprocesses
 /// response.

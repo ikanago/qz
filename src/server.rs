@@ -165,12 +165,9 @@ where
         } = self;
 
         println!("{}", request);
-        let handler = match router.find(request.uri(), request.method()) {
-            Ok(handler) => handler,
-            Err(code) => return Response::from(code),
-        };
+        let handler = router.find(request.uri(), request.method());
         let chain = MiddlewareChain {
-            handler: handler.as_ref(),
+            handler,
             middlewares: &middlewares,
         };
         chain.run(request, state).await
