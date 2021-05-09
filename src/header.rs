@@ -45,6 +45,7 @@ define_headers!(
     (ContentType, b"Content-Type", b"content-type"),
     (Host, b"Host", b"host"),
     (Location, b"Location", b"location"),
+    (Origin, b"Origin", b"origin"),
     (UserAgent, b"User-Agent", b"user-agent"),
     (WwwAuthenticate, b"WWW-Authenticate", b"www-authenticate"),
 );
