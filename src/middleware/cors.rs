@@ -228,9 +228,6 @@ mod tests {
     #[tokio::test]
     async fn handle_preflight_request() {
         let server = server()
-            .route("/*", Method::Options, |_, _| async {
-                StatusCode::BadRequest
-            })
             .with(Cors::new().allow_origin(ALLOW_ORIGIN))
             .build();
         let request = Request::builder()

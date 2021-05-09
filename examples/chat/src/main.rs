@@ -9,8 +9,8 @@ use std::{
 use db::Db;
 use model::{Post, User};
 use qz::{
-    body::Body, method::Method, mime, redirect::Redirect, request::Request, response::Response,
-    server::ServerBuilder, status::StatusCode,
+    body::Body, method::Method, middleware::Cors, mime, redirect::Redirect, request::Request,
+    response::Response, server::Server, status::StatusCode,
 };
 
 async fn register(request: Request, db: Arc<RwLock<Db>>) -> qz::Result<Response> {
@@ -50,13 +50,12 @@ async fn create_post(request: Request, db: Arc<RwLock<Db>>) -> qz::Result<Respon
 async fn main() -> io::Result<()> {
     let db = Arc::new(RwLock::new(Db::new()));
 
-    ServerBuilder::with_state(8080, db.clone())
-        .await?
+    let server = Server::builder_with_state(db.clone())
+        .with(Cors::new())
         .serve_dir("/site", "./frontend/build")
         .route("/register", Method::Post, register)
         .route("/posts", Method::Get, posts)
         .route("/create_post", Method::Post, create_post)
-        .build()
-        .run()
-        .await
+        .build();
+    Server::run(server, 8080).await
 }

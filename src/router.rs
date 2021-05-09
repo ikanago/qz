@@ -1,4 +1,6 @@
-use crate::{handler::Handler, method::Method, status::StatusCode};
+use crate::{
+    handler::Handler, method::Method, request::Request, response::Response, status::StatusCode,
+};
 use std::collections::HashMap;
 
 /// Associates URI with `Handler`.
@@ -144,25 +146,25 @@ where
         }
     }
 
-    pub fn find<B: AsRef<[u8]>>(
-        &self,
-        key: B,
-        method: Method,
-    ) -> crate::Result<&Box<dyn Handler<State>>> {
+    // `find` returns `Handler` even there's no method in the route.
+    // The main purpose is CORS handling which needs to process OPTIONS method for preflight.
+    // if `Router` does not return `Handler` in such error, dummy handler to "/*" for OPTIONS
+    // method should be registered to pass the request to middlewares. This is ugly.
+    pub fn find<'a, B: AsRef<[u8]>>(&'a self, key: B, method: Method) -> &'a dyn Handler<State> {
         let key = key.as_ref();
         if key.is_empty() {
-            return Err(StatusCode::NotFound);
+            return &not_found;
         }
         if &self.path[..] > key {
             // e.g. `self.path` is "hoge" and `key` is "ho".
-            return Err(StatusCode::NotFound);
+            return &not_found;
         }
         if key == self.path {
             match self.handlers.get(&method) {
-                Some(handler) => return Ok(&handler),
+                Some(handler) => return &**handler,
                 None => {
                     if self.children.is_empty() {
-                        return Err(StatusCode::MethodNotAllowed);
+                        return &method_not_allowed;
                     }
                     // Try further e.g. `self.path` is "hoge", key is "hoge" and this node has
                     // wildcard child.
@@ -175,8 +177,8 @@ where
         for child in &self.children {
             if &child.path == b"*" {
                 match child.handlers.get(&method) {
-                    Some(handler) => return Ok(&handler),
-                    None => return Err(StatusCode::MethodNotAllowed),
+                    Some(handler) => return &**handler,
+                    None => return &method_not_allowed,
                 }
             }
             if let (Some(c), Some(d)) = (child.path.get(0), key_remaining.iter().next()) {
@@ -185,8 +187,22 @@ where
                 }
             }
         }
-        Err(StatusCode::NotFound)
+        &not_found
     }
+}
+
+pub async fn not_found<State>(_request: Request, _state: State) -> Response
+where
+    State: Clone + Send + Sync + 'static,
+{
+    Response::new(StatusCode::NotFound)
+}
+
+pub async fn method_not_allowed<State>(_request: Request, _state: State) -> Response
+where
+    State: Clone + Send + Sync + 'static,
+{
+    Response::new(StatusCode::MethodNotAllowed)
 }
 
 #[cfg(test)]
@@ -233,26 +249,31 @@ mod tests {
 
     impl_dummy_handler!(Dummy, "dummy");
 
-    #[test]
-    fn find() {
-        let mut tree = Router::new();
+    async fn test_route(router: &Router<()>, key: impl AsRef<[u8]>, method: Method) {
+        let handler = router.find(key, method);
+        let response = handler.call(Request::default(), ()).await.unwrap();
+        assert_eq!(StatusCode::Ok, response.status_code());
+    }
+
+    #[tokio::test]
+    async fn find() {
+        let mut router = Router::new();
         let keys = vec!["/", "to", "tea", "ted", "hoge", "h", "i", "in", "inn"];
         for key in &keys {
-            tree.add_route(key.as_bytes(), Method::Get, Dummy);
+            router.add_route(key.as_bytes(), Method::Get, Dummy);
         }
         for key in keys {
-            tree.find(key.as_bytes(), Method::Get).unwrap();
+            test_route(&router, key.as_bytes(), Method::Get).await;
         }
     }
 
-    #[test]
-    fn invalid_method() {
+    #[tokio::test]
+    async fn invalid_method() {
         let mut tree = Router::new();
         tree.add_route("/example", Method::Get, Dummy);
-        match tree.find(b"/example", Method::Post) {
-            Ok(_) => panic!("No handler is registered for POST"),
-            Err(code) => assert_eq!(StatusCode::MethodNotAllowed, code),
-        }
+        let handler = tree.find(b"/example", Method::Post);
+        let response = handler.call(Request::default(), ()).await.unwrap();
+        assert_eq!(StatusCode::MethodNotAllowed, response.status_code());
     }
 
     // Generate random alphanumeric string.
@@ -267,8 +288,8 @@ mod tests {
             .collect::<Vec<_>>()
     }
 
-    #[test]
-    fn find_random() {
+    #[tokio::test]
+    async fn find_random() {
         let mut tree = Router::new();
         let count = 1000;
         let keys = (0..count).map(|_| random_bytes()).collect::<Vec<Vec<_>>>();
@@ -276,12 +297,12 @@ mod tests {
             tree.add_route(key, Method::Get, Dummy);
         }
         for key in &keys {
-            tree.find(key, Method::Get).unwrap();
+            test_route(&tree, key, Method::Get).await;
         }
     }
 
-    #[test]
-    fn find_with_wildcard() {
+    #[tokio::test]
+    async fn find_with_wildcard() {
         let mut tree = Router::new();
         let paths = vec!["/", "/index.html", "/static/*"];
         for key in &paths {
@@ -295,36 +316,37 @@ mod tests {
             "/static/index.js",
         ];
         for query in &queries {
-            tree.find(query.as_bytes(), Method::Get).unwrap();
+            test_route(&tree, query.as_bytes(), Method::Get).await;
         }
     }
 
-    #[test]
-    fn dont_match_substr() {
+    #[tokio::test]
+    #[should_panic]
+    async fn dont_match_substr() {
         let mut tree = Router::new();
         tree.add_route(b"/hoge", Method::Get, Dummy);
-        assert!(tree.find(b"/ho", Method::Get).is_err())
+        test_route(&tree, b"/ho", Method::Get).await;
     }
 
-    #[test]
-    fn dont_match_substr2() {
+    #[tokio::test]
+    #[should_panic]
+    async fn dont_match_substr2() {
         let mut tree = Router::new();
         tree.add_route(b"/hoge", Method::Get, Dummy);
         tree.add_route(b"/ho", Method::Post, Dummy);
-        assert!(tree.find(b"/ho", Method::Get).is_err())
+        test_route(&tree, b"/ho", Method::Get).await;
     }
 
-    #[test]
-    fn match_child_wildcard_defferent_method() {
+    #[tokio::test]
+    async fn match_child_wildcard_defferent_method() {
         let mut tree = Router::new();
         tree.add_route(b"/hoge", Method::Get, Dummy);
         tree.add_route(b"/hoge*", Method::Post, Dummy);
-        assert!(tree.find(b"/hoge", Method::Post).is_ok())
+        test_route(&tree, b"/hoge", Method::Post).await;
     }
 
     async fn extract_body(tree: &Router<()>, key: &[u8], method: Method) -> Body {
         tree.find(key, method)
-            .unwrap()
             .call(Request::default(), ())
             .await
             .unwrap()
